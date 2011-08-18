@@ -1,4 +1,4 @@
-var max_img = 2;
+var max_img = 7;
 var currnet_image = 0;
 
 function slide_to(){

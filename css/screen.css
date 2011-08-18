@@ -38,9 +38,9 @@ a:hover { color:#0084f3; }
 
 
 /* slide show */
-.slide-show { width:880px; height:500px; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius:10px; -o-border-radius:10px; box-shadow: 0 0 10px #888; -webkit-box-shadow: 0 0 10px #888; margin:20px auto 20px auto; }
+.slide-show { width:880px; height:450px; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius:10px; -o-border-radius:10px; box-shadow: 0 0 10px #888; -webkit-box-shadow: 0 0 10px #888; margin:20px auto 20px auto; }
 .slide-show-btn-left, .slide-show-btn-right, .slide-container { float:left; }
-.slide-show-btn-left, .slide-show-btn-right { width:40px; height:500px; font-weight:bold; text-align:center; font-size:24px; cursor:hand; cursor:pointer; }
+.slide-show-btn-left, .slide-show-btn-right { width:40px; height:450px; font-weight:bold; text-align:center; font-size:24px; cursor:hand; cursor:pointer; }
 .slide-show-btn-left span, .slide-show-btn-right span { margin-top:225px; display:block; color:#cccccc; text-shadow:#666666 -1px -1px 0px; }
 
 .slide-show-btn-left {
@@ -90,7 +90,7 @@ a:hover { color:#0084f3; }
 }
 
 .slide-container { width:800px; overflow:hidden; }
-.slider{ width:2400px; }
+.slider{ width:6400px; }
 
 .slider-container { float:left; }
 
