@@ -1,6 +1,9 @@
 // weapon.cpp: all shooting and effects code, projectile management
 #include "game.h"
 
+//wrack
+extern void lshoottoogle(const vec &to);
+
 namespace game
 {
     static const int MONSTERDAMAGEFACTOR = 4;
@@ -665,6 +668,9 @@ namespace game
                 break;
         }
         if(d->quadmillis && lastmillis-prevaction>200 && !looped) playsound(S_ITEMPUP, d==hudplayer() ? NULL : &d->o);
+
+		//wrack
+		lshoottoogle(to);
     }
 
     void particletrack(physent *owner, vec &o, vec &d)

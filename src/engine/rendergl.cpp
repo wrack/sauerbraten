@@ -1774,6 +1774,9 @@ void gl_drawhud(int w, int h);
 
 int xtraverts, xtravertsva;
 
+//wrack
+extern void renderlogicsim();
+
 void gl_drawframe(int w, int h)
 {
     defaultshader->set();
@@ -1850,6 +1853,9 @@ void gl_drawframe(int w, int h)
     if(!limitsky()) drawskybox(farplane, false);
 
     renderdecals(true);
+	
+	//wrack
+	renderlogicsim();
 
     rendermapmodels();
     rendergame(true);

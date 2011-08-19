@@ -1,5 +1,6 @@
 #include "game.h"
-
+//wrack
+extern void updatelogicsim(int curtime);
 namespace game
 {
     bool intermission = false;
@@ -249,6 +250,8 @@ namespace game
         gets2c();
         updatemovables(curtime);
         updatemonsters(curtime);
+		//wrack
+		updatelogicsim(curtime);
         if(player1->state==CS_DEAD)
         {
             if(player1->ragdoll) moveragdoll(player1);

@@ -2216,3 +2216,4 @@ void rendertexturepanel(int w, int h)
         glPopMatrix();
     }
 }
+#include "../wrack/logicsim.h"
