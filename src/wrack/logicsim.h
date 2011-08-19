@@ -1,5 +1,5 @@
-//TODO: later set gridsize variable by lsetgrid
-//TODO: all vector clearing check if buffer is freed
+//selection from the scanned circuit
+selinfo circsel;
 
 // texture index for scanning and rendering io elements
 const uint TEX_WIRE_ON = 834;
@@ -442,10 +442,10 @@ void wire_step(int ei,int wi,int faces=6){
 	int nx,ny,nz;
 	// check sorounding if wire or connected output
 	loopi(faces){
-		nx = current_wire_parts[wi]->x + xi[i]*4;
-		ny = current_wire_parts[wi]->y + yi[i]*4;
-		nz = current_wire_parts[wi]->z + zi[i]*4;
-		c = &lookupcube(nx,ny,nz, 4);
+		nx = current_wire_parts[wi]->x + xi[i]*circsel.grid;
+		ny = current_wire_parts[wi]->y + yi[i]*circsel.grid;
+		nz = current_wire_parts[wi]->z + zi[i]*circsel.grid;
+		c = &lookupcube(nx,ny,nz, circsel.grid);
 		
 		// if wirepart not done and not empty
 		if (!isempty(*c) && !isWireDone(nx,ny,nz))
@@ -476,7 +476,6 @@ void wire_step(int ei,int wi,int faces=6){
 vector <IO_elem*> IO_renderables;
 #define looprelements() loopv(IO_renderables)
 bool scaned = false;
-selinfo circsel;
 
 void lclear()
 {
@@ -517,28 +516,28 @@ void init_element_times(IO_elem *e)
 	loopi(4)
 	{
 		// only one direction on xy plane
-		x = e->x + xi[i]*4;
-		y = e->y + yi[i]*4;
+		x = e->x + xi[i]*circsel.grid;
+		y = e->y + yi[i]*circsel.grid;
 		z = e->z;
-		c = &lookupcube(x,y,z, 4);
+		c = &lookupcube(x,y,z, circsel.grid);
 
 		if(is_tex_cube(c,TEX_TIMER))
 		{
 			// Timer input found
-			// max 16 bit TODO: maybe max int size
+			// max 16 bit TODO: maybe max int size / 20ms (times are stored in int)
 			loopk(16)
 			{
-				nx = x + k*xi[i]*4;
-				ny = y + k*yi[i]*4;
-				c = &lookupcube(nx,ny,z, 4);
+				nx = x + k*xi[i]*circsel.grid;
+				ny = y + k*yi[i]*circsel.grid;
+				c = &lookupcube(nx,ny,z, circsel.grid);
 
 				if(is_tex_cube(c,TEX_TIMER))
 				{
 					// look if has a high and a low
 					// 20ms minimal time
-					c = &lookupcube(nx,ny,z+4, 4);
+					c = &lookupcube(nx,ny,z+circsel.grid, circsel.grid);
 					if(is_tex_cube(c,TEX_TIME_HIGH)) htime += 1<<k;
-					c = &lookupcube(nx,ny,z-4, 4);
+					c = &lookupcube(nx,ny,z-circsel.grid, circsel.grid);
 					if(is_tex_cube(c,TEX_TIME_LOW)) ltime += 1<<k;
 				}else{
 					break;
@@ -550,7 +549,7 @@ void init_element_times(IO_elem *e)
 }
 
 void lscan() {
-	if (sel.grid !=4) {conoutf ("\f1#circuit:\f2 please use gridsize 4 when selecting for scan."); return;}
+	//if (sel.grid !=4) {conoutf ("\f1#circuit:\f2 please use gridsize 4 when selecting for scan."); return;}
 	
 	lclear();
 
@@ -662,7 +661,10 @@ void lstep(){
 COMMAND(lstep,"");
 */
 
+#define circuitgriderr if(sel.grid!=circsel.grid) { conoutf(CON_ERROR, "\f3gridpower should be %d\f3",(int)sqrt((float)circsel.grid)); return; }
+
 void lset(){
+	circuitgriderr;
 	IO_elem *e = findelement(sel.o.x,sel.o.y,sel.o.z);
 	if(e){
 		e->toggle();
@@ -674,6 +676,7 @@ COMMAND(lset,""); //toggle a element state
 
 void lsettimes(int *htime, int *ltime)
 {
+	circuitgriderr;
 	IO_elem *e = findelement(sel.o.x,sel.o.y,sel.o.z);
 	if(e){
 		settimes_elem(*htime, *ltime,e);
@@ -685,6 +688,7 @@ COMMAND(lsettimes,"ii");
 
 void lgettimes()
 {
+	circuitgriderr;
 	IO_elem *e = findelement(sel.o.x,sel.o.y,sel.o.z);
 	if(e){
 		gettimes_elem(e);
@@ -697,11 +701,10 @@ COMMAND(lgettimes,"");
 VAR(lpause, 0, 0, 1);
 
 void buildcube(const int tex){
-	sel.o.x -= 4;
+	sel.o.x -= sel.grid;
 	int dir = -1;
 	int mode = 1;
 	editface(&dir, &mode);
-	cube *c = &lookupcube(sel.o.x,sel.o.y,sel.o.z,4);
 	edittex(tex,false);
 }
 
@@ -711,7 +714,7 @@ void lbuildtimer(int *htime, int *ltime)
 	sel.s.x = 1;
 	sel.s.y = 1;
 	sel.s.z = 1;
-	sel.grid = 4;
+	//sel.grid = 4;
 	sel.orient = 1;
 	sel.cx=0;
 	sel.cy=0;
@@ -730,18 +733,18 @@ void lbuildtimer(int *htime, int *ltime)
 	if(maxtime==0) return;
 	int cnt = 0;
 	while(maxtime!=0){
-		sel.o.x += 4;
+		sel.o.x += sel.grid;
 		buildcube(TEX_TIMER);
 		
 		if(ht&1<<cnt){
-			sel.o.z += 4;
+			sel.o.z += circsel.grid;
 			buildcube(TEX_TIME_HIGH);
-			sel.o.z -= 4;
+			sel.o.z -= circsel.grid;
 		}
 		if(lt&1<<cnt){
-			sel.o.z -= 4;
+			sel.o.z -= circsel.grid;
 			buildcube(TEX_TIME_LOW);
-			sel.o.z += 4;
+			sel.o.z += circsel.grid;
 		}
 		
 		maxtime>>=1;
@@ -812,7 +815,7 @@ void render_cube(int x, int y, int z,int size, float tc[4][2], int faces=0x3F)
 }
 
 //TODO: use shaders 
-void render_with_txture(uint _i,int _x, int _y, int _z,int _size)
+void render_with_txture(uint _i,int _x, int _y, int _z)
 {
     VSlot &vslot = lookupvslot(_i);
     Slot &slot = *vslot.slot;
@@ -825,13 +828,14 @@ void render_with_txture(uint _i,int _x, int _y, int _z,int _size)
 
 	//scale to gridsize 
 	//TODO: scale offset rot from vslot
-	float sx = 32.0f/(float)tex->xs; // 32 = 4*8 4 is gridsize
-	float sy = 32.0f/(float)tex->ys;
+	float sg = circsel.grid * 8;
+	float sx = sg/(float)tex->xs; // 32 = 4*8 4 is gridsize
+	float sy = sg/(float)tex->ys;
 	float tc[4][2] = { { 0, 0 }, { sx, 0 }, { sx, sy }, { 0, sy } };
 	
 	//glActiveTexture_(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, tex->id);
-	render_cube(_x,_y,_z,_size,tc);
+	render_cube(_x,_y,_z,circsel.grid,tc);
 
 	//g
 	if(glowtex)
@@ -842,7 +846,7 @@ void render_with_txture(uint _i,int _x, int _y, int _z,int _size)
 		glBlendFunc(GL_ONE, GL_ONE);
 		glBindTexture(GL_TEXTURE_2D, glowtex->id);
 
-		render_cube(_x,_y,_z,_size,tc);
+		render_cube(_x,_y,_z,circsel.grid,tc);
 
 		glDisable(GL_BLEND);
 		glDepthFunc(GL_LESS);
@@ -852,7 +856,7 @@ void render_with_txture(uint _i,int _x, int _y, int _z,int _size)
 void renderlogicsim(){
 	if(!scaned) return;
 	glEnable(GL_TEXTURE_2D);
-	looprelements() render_with_txture(IO_renderables[i]->render_result() ,IO_renderables[i]->x, IO_renderables[i]->y, IO_renderables[i]->z,4);
+	looprelements() render_with_txture(IO_renderables[i]->render_result() ,IO_renderables[i]->x, IO_renderables[i]->y, IO_renderables[i]->z);
 	glDisable(GL_TEXTURE_2D);
 }
 
@@ -882,7 +886,7 @@ void lshoottoogle(const vec &to)
 	{
 		if(elements[i]->etype == IOE_SWITCH || elements[i]->etype == IOE_BUTTON)
 		{
-			if(incube(to, vec(elements[i]->x,elements[i]->y,elements[i]->z), 4)) elements[i]->toggle();
+			if(incube(to, vec(elements[i]->x,elements[i]->y,elements[i]->z), circsel.grid)) elements[i]->toggle();
 		}
 	}
 }
