@@ -702,8 +702,7 @@ void buildcube(const int tex){
 	int mode = 1;
 	editface(&dir, &mode);
 	cube *c = &lookupcube(sel.o.x,sel.o.y,sel.o.z,4);
-	loopi(6) c->texture[i] = tex;
-	changed(sel);
+	edittex(tex,false);
 }
 
 void lbuildtimer(int *htime, int *ltime)
@@ -720,6 +719,8 @@ void lbuildtimer(int *htime, int *ltime)
 	sel.cys=2;
 	sel.corner=3;
 
+	int allfs = allfaces;
+	allfaces = 1;
 	buildcube(TEX_RECTANGLE_SIGNAL);
 
 	int ht = *htime / 20;
@@ -746,6 +747,7 @@ void lbuildtimer(int *htime, int *ltime)
 		maxtime>>=1;
 		cnt++;
 	}
+	allfaces = allfs;
 	cancelsel();
 }
 COMMAND(lbuildtimer,"ii"); // build a timer input in ms smallest step 20ms
