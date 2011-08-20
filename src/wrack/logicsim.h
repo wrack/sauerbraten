@@ -412,7 +412,7 @@ void lreset(){
 }
 COMMAND(lreset,""); // reset states of elements
 
-#define loopsel(f){ loopi(sel.s.x) loopj(sel.s.y) loopk(sel.s.z) { int x=sel.o.x+i*sel.grid; int y=sel.o.y+j*sel.grid; int z=sel.o.z+k*sel.grid; cube *c = &lookupcube(x,y,z); f; }}
+#define loopsel(f){ loopi(sel.s.x) loopj(sel.s.y) loopk(sel.s.z) { int x=sel.o.x+i*sel.grid; int y=sel.o.y+j*sel.grid; int z=sel.o.z+k*sel.grid; cube *c = &lookupcube(x,y,z,sel.grid); f; }}
 
 struct wiredata
 {
@@ -545,7 +545,7 @@ void init_element_times(IO_elem *e)
 			}
 		}
 	}
-	settimes_elem(htime*20, ltime*20,e);
+	if(htime!=0 || ltime!=0) settimes_elem(htime*20, ltime*20,e);
 }
 
 void lscan() {
@@ -618,10 +618,9 @@ void lscan() {
 			}
 			// reset wires done for next element
 			wire_parts_done.deletecontents();
-
-			logic_progress++;
-			renderprogress(float(logic_progress)/logic_progress_total, "scanning connections...");
 		}
+		logic_progress++;
+		renderprogress(float(logic_progress)/logic_progress_total, "scanning connections...");
 	}
 
 	// prepare renderable cubes
@@ -828,7 +827,7 @@ void render_with_txture(uint _i,int _x, int _y, int _z)
 
 	//scale to gridsize 
 	//TODO: scale offset rot from vslot
-	float sg = circsel.grid * 8;
+	float sg = circsel.grid * 8; // TODO: its maybe wrong
 	float sx = sg/(float)tex->xs; // 32 = 4*8 4 is gridsize
 	float sy = sg/(float)tex->ys;
 	float tc[4][2] = { { 0, 0 }, { sx, 0 }, { sx, sy }, { 0, sy } };
