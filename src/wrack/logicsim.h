@@ -3,7 +3,8 @@ selinfo circsel;
 
 // texture index for scanning and rendering io elements
 const uint TEX_WIRE_ON = 834;
-const uint TEX_WIRE_OFF = 832;
+const uint TEX_WIRE_ONE_WAY = 832;
+
 const uint TEX_SWITCH_ON = 456;
 const uint TEX_SWITCH_OFF = 417;
 const uint TEX_TORCH_ON = 774;
@@ -24,6 +25,9 @@ const uint TEX_TIME_LOW = 831;
 int xi[6] = {-1, 1, 0, 0, 0, 0};  
 int yi[6] = { 0, 0,-1, 1, 0, 0};
 int zi[6] = { 0, 0, 0, 0,-1, 1};
+
+// oposit face
+int of[6] = {1, 0, 3, 2, 5, 4}; 
 
 // possible IO types (Output,InOutput,Input)
 enum IO_types
@@ -484,11 +488,13 @@ void wire_step(int ei,int wi,int faces=6){
 	int nx,ny,nz;
 	// check sorounding if wire or connected output
 	loopi(faces){
+
 		nx = current_wire_parts[wi]->x + xi[i]*circsel.grid;
 		ny = current_wire_parts[wi]->y + yi[i]*circsel.grid;
 		nz = current_wire_parts[wi]->z + zi[i]*circsel.grid;
 		c = &lookupcube(nx,ny,nz, circsel.grid);
 		
+
 		// if wirepart not done and not empty
 		if (!isempty(*c) && !isWireDone(nx,ny,nz))
 		{
@@ -502,9 +508,10 @@ void wire_step(int ei,int wi,int faces=6){
 					wire_parts_done.add(new wiredata(nx,ny,nz)); // wire part done for this element
 				}
 			}
-			else if(c->texture[O_BOTTOM] == TEX_WIRE_ON)
-			{
-				// wire 
+			// one way wire
+			else if(c->texture[O_BOTTOM] == TEX_WIRE_ON && c->texture[of[i]] != TEX_WIRE_ONE_WAY)
+			{	
+				// wire
 				current_wire_parts.add(new wiredata(nx,ny,nz)); // add to wire parts to be checked in next step
 				wire_parts_done.add(new wiredata(nx,ny,nz));  // wire part done for this element
 			}
