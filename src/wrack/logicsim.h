@@ -509,7 +509,7 @@ void wire_step(int ei,int wi,int faces=6){
 				}
 			}
 			// one way wire
-			else if(c->texture[O_BOTTOM] == TEX_WIRE_ON && c->texture[of[i]] != TEX_WIRE_ONE_WAY)
+			else if((c->texture[O_BOTTOM] == TEX_WIRE_ON || c->texture[O_BOTTOM] == TEX_WIRE_ONE_WAY) && c->texture[of[i]] != TEX_WIRE_ONE_WAY)
 			{	
 				// wire
 				current_wire_parts.add(new wiredata(nx,ny,nz)); // add to wire parts to be checked in next step
@@ -883,7 +883,7 @@ void render_with_txture(uint _i,int _x, int _y, int _z)
 	//scale to gridsize 
 	//TODO: scale offset rot from vslot
 	float sg = circsel.grid * 8; // TODO: its maybe wrong
-	float sx = sg/(float)tex->xs; // 32 = 4*8 4 is gridsize
+	float sx = sg/(float)tex->xs;
 	float sy = sg/(float)tex->ys;
 	float tc[4][2] = { { 0, 0 }, { sx, 0 }, { sx, sy }, { 0, sy } };
 	
