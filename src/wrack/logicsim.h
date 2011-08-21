@@ -12,6 +12,8 @@ const uint TEX_LED_ON = 764;
 const uint TEX_LED_OFF = 814;
 const uint TEX_BUTTON_ON = 464;
 const uint TEX_BUTTON_OFF = 418;
+const uint TEX_RADIO_BUTTON_OFF = 113;
+const uint TEX_RADIO_BUTTON_ON = 201;
 
 const uint TEX_RECTANGLE_SIGNAL = 833;
 const uint TEX_TIMER = 784;
@@ -40,6 +42,7 @@ enum IO_elem_type
 	IOE_LED,
 	IOE_RECTANGLE_SIGNAL,
 	IOE_BUTTON,
+	IOE_RADIO_BUTTON,
 };
 
 // for simulation
@@ -201,7 +204,6 @@ struct SWITCH:IO_elem
 		etype = IOE_SWITCH;
 	}	
 	
-	void sim_result(int curtime){}
 	
 	uint render_result()
 	{
@@ -212,6 +214,45 @@ struct SWITCH:IO_elem
 		else
 		{
 			return TEX_SWITCH_OFF;
+		}
+	}
+};
+
+struct RADIO_BUTTON:IO_elem
+{
+	RADIO_BUTTON (cube *_c,int _x,int _y,int _z, bool _default_state){
+		c = _c;
+		x=_x;
+		y=_y;
+		z=_z;
+		type=IO_TYPE_IO;
+		default_state=_default_state;
+		sim_state=default_state;
+		sim_step=0;
+		renderable = true;
+		etype = IOE_RADIO_BUTTON;
+	}	
+	
+	virtual void sim_result(int curtime){}
+	virtual void toggle()
+	{
+		sim_state = !sim_state;
+		if(sim_state){
+			loopv(outputs) {
+				outputs[i]->sim_state = false;
+			}
+		}
+	}
+	
+	uint render_result()
+	{
+		if(sim_state)
+		{
+			return TEX_RADIO_BUTTON_ON;
+		}
+		else
+		{
+			return TEX_RADIO_BUTTON_OFF;
 		}
 	}
 };
@@ -587,6 +628,12 @@ void lscan() {
 				case TEX_BUTTON_OFF:
 					init_element_times(elements.add(new BUTTON(c,x ,y ,z, false)));
 					break;
+				case TEX_RADIO_BUTTON_ON:
+					elements.add(new RADIO_BUTTON(c,x ,y ,z, true));
+					break;
+				case TEX_RADIO_BUTTON_OFF:
+					elements.add(new RADIO_BUTTON(c,x ,y ,z, false));
+					break;
 			}
 		}
 	);
@@ -883,7 +930,7 @@ void lshoottoogle(const vec &to)
 {
 	loopelements()
 	{
-		if(elements[i]->etype == IOE_SWITCH || elements[i]->etype == IOE_BUTTON)
+		if(elements[i]->etype == IOE_SWITCH || elements[i]->etype == IOE_BUTTON || elements[i]->etype == IOE_RADIO_BUTTON)
 		{
 			if(incube(to, vec(elements[i]->x,elements[i]->y,elements[i]->z), circsel.grid)) elements[i]->toggle();
 		}
