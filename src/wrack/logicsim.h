@@ -204,6 +204,7 @@ struct SWITCH:IO_elem
 		etype = IOE_SWITCH;
 	}	
 	
+	void sim_result(int curtime){}
 	
 	uint render_result()
 	{
