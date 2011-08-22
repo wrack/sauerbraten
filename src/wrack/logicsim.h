@@ -4,7 +4,6 @@ selinfo circsel;
 // texture index for scanning and rendering io elements
 const uint TEX_WIRE_ON = 834;
 const uint TEX_WIRE_ONE_WAY = 832;
-
 const uint TEX_SWITCH_ON = 456;
 const uint TEX_SWITCH_OFF = 417;
 const uint TEX_TORCH_ON = 774;
@@ -15,6 +14,7 @@ const uint TEX_BUTTON_ON = 464;
 const uint TEX_BUTTON_OFF = 418;
 const uint TEX_RADIO_BUTTON_OFF = 113;
 const uint TEX_RADIO_BUTTON_ON = 201;
+const uint TEX_BUFFER = 780;
 
 const uint TEX_RECTANGLE_SIGNAL = 833;
 const uint TEX_TIMER = 784;
@@ -188,6 +188,31 @@ struct TORCH:IO_elem
 	
 	void sim_result(int curtime){
 		sim_state = !sim_outputs_or(curtime);
+	}
+	
+	uint render_result(){ return 0; }
+};
+
+struct BUFFER:IO_elem
+{
+	bool last_sim_state;
+
+	BUFFER (cube *_c,int _x,int _y,int _z, bool _default_state){
+		c = _c;
+		x=_x;
+		y=_y;
+		z=_z;
+		type=IO_TYPE_IO;
+		default_state=_default_state;
+		last_sim_state=sim_state=default_state;
+		sim_step=0;
+		renderable = false;
+		etype = IOE_TORCH;
+	}
+	
+	void sim_result(int curtime){
+		sim_state = last_sim_state;
+		last_sim_state = sim_outputs_or(curtime);
 	}
 	
 	uint render_result(){ return 0; }
@@ -594,7 +619,7 @@ void init_element_times(IO_elem *e)
 			}
 		}
 	}
-	if(htime!=0 || ltime!=0) settimes_elem(htime*20, ltime*20,e);
+	if(htime!=0 || ltime!=0) settimes_elem(htime, ltime,e);
 }
 
 void lscan() {
@@ -641,6 +666,9 @@ void lscan() {
 					break;
 				case TEX_RADIO_BUTTON_OFF:
 					elements.add(new RADIO_BUTTON(c,x ,y ,z, false));
+					break;
+				case TEX_BUFFER:
+					elements.add(new BUFFER(c,x ,y ,z, false));
 					break;
 			}
 		}
@@ -780,8 +808,8 @@ void lbuildtimer(int *htime, int *ltime)
 	allfaces = 1;
 	buildcube(TEX_RECTANGLE_SIGNAL);
 
-	int ht = *htime / 20;
-	int lt = *ltime / 20;
+	int ht = *htime;
+	int lt = *ltime;
 
 	int maxtime = max(ht,lt);
 	if(maxtime==0) return;
@@ -791,14 +819,14 @@ void lbuildtimer(int *htime, int *ltime)
 		buildcube(TEX_TIMER);
 		
 		if(ht&1<<cnt){
-			sel.o.z += circsel.grid;
+			sel.o.z += sel.grid;
 			buildcube(TEX_TIME_HIGH);
-			sel.o.z -= circsel.grid;
+			sel.o.z -= sel.grid;
 		}
 		if(lt&1<<cnt){
-			sel.o.z -= circsel.grid;
+			sel.o.z -= sel.grid;
 			buildcube(TEX_TIME_LOW);
-			sel.o.z += circsel.grid;
+			sel.o.z += sel.grid;
 		}
 		
 		maxtime>>=1;
@@ -915,12 +943,25 @@ void renderlogicsim(){
 }
 
 /* Physic */
-void extern updatelogicsim(int curtime)
+VARP(ltimestep, 1, 1, 3000);
+int curr_time = 0;
+
+void updatelogicsim(int curtime)
 {
 	if(!scaned || curtime==0 || lpause) return;
-	simulating_step++;
-	if(simulating_step>1000) simulating_step = 1;
-	loopielements() I_elements[i]->sim(simulating_step,curtime); //only inputs to sim
+
+	// ms loop
+	loopi(curtime)
+	{
+		//step time in ms
+		curr_time++;
+		if(curr_time>=ltimestep){
+			curr_time=0;
+			simulating_step++;
+			if(simulating_step>1000) simulating_step = 0;
+			loopielements() I_elements[i]->sim(simulating_step,1); //only inputs to sim
+		}
+	}
 }
 
 /* shoot toggle */
