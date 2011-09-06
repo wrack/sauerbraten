@@ -182,7 +182,8 @@ struct TORCH:IO_elem
 		default_state=_default_state;
 		sim_state=default_state;
 		sim_step=0;
-		renderable = false;
+		renderable = false; //out for DEBUG
+		//renderable = true;
 		etype = IOE_TORCH;
 	}
 	
@@ -190,7 +191,20 @@ struct TORCH:IO_elem
 		sim_state = !sim_outputs_or(curtime);
 	}
 	
-	uint render_result(){ return 0; }
+	uint render_result(){ return 0; } //out for DEBUG
+	/*
+	uint render_result()
+	{
+		if(sim_state)
+		{
+			return TEX_TORCH_ON;
+		}
+		else
+		{
+			return TEX_TORCH_OFF;
+		}
+	}
+	*/
 };
 
 struct BUFFER:IO_elem
@@ -622,6 +636,8 @@ void init_element_times(IO_elem *e)
 	if(htime!=0 || ltime!=0) settimes_elem(htime, ltime,e);
 }
 
+int logic_progress = 0;
+int logic_progress_total = 0;
 void lscan() {
 	//if (sel.grid !=4) {conoutf ("\f1#circuit:\f2 please use gridsize 4 when selecting for scan."); return;}
 	
@@ -677,8 +693,8 @@ void lscan() {
 	conoutf("\f1%d Elements found.\f1",elements.length());
 
 	// scann connections
-	static int logic_progress = 0;
-	static int logic_progress_total = elements.length();
+	logic_progress = 0;
+	logic_progress_total = elements.length();
 
 	loopelements()
 	{
@@ -724,6 +740,11 @@ void lscan() {
 }
 COMMAND(lscan,""); // scans selection and adds new elements to circuit
 
+void lrescan() {
+	sel = circsel;
+	lscan();
+}
+COMMAND(lrescan,"");
 /*
 void lstep(){
 	int smills = SDL_GetTicks(); // time delay for debug
