@@ -1,4 +1,6 @@
 #include "game.h"
+//wrack
+extern void mplscan(selinfo &sel, bool local);
 
 namespace game
 {
@@ -500,6 +502,15 @@ namespace game
             case EDIT_REMIP:
             {
                 addmsg(N_EDITF + op, "r");
+                break;
+            }
+			//by Wrack
+			case EDIT_LSCAN:
+            {
+               addmsg(N_EDITT, "ri9i6",
+                   sel.o.x, sel.o.y, sel.o.z, sel.s.x, sel.s.y, sel.s.z, sel.grid, sel.orient,
+                   sel.cx, sel.cxs, sel.cy, sel.cys, sel.corner,
+				   66666,0);
                 break;
             }
         }
@@ -1350,7 +1361,18 @@ namespace game
                 switch(type)
                 {
                     case N_EDITF: dir = getint(p); mode = getint(p); mpeditface(dir, mode, sel, false); break;
-                    case N_EDITT: tex = getint(p); allfaces = getint(p); mpedittex(tex, allfaces, sel, false); break;
+					//change by wrack 
+                   case N_EDITT: 
+						tex = getint(p); allfaces = getint(p); 
+						if(tex=66666)
+						{
+							 mplscan(sel,false); break;//by wrack
+						}
+						else
+						{
+							mpedittex(tex, allfaces, sel, false); 
+						}
+						break;
                     case N_EDITM: mat = getint(p); filter = getint(p); mpeditmat(mat, filter, sel, false); break;
                     case N_FLIP: mpflip(sel, false); break;
                     case N_COPY: if(d) mpcopy(d->edit, sel, false); break;

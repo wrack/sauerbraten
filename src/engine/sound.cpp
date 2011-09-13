@@ -678,3 +678,38 @@ void updatemumble()
 #endif
 }
 
+//wrack
+Uint16 *make_wave(int _sampling_f,double _frequenz,int &samp)
+{
+	int i,samples;
+	double freq;
+	Uint16 *sine;
+
+	samples=(int)(_sampling_f/_frequenz);
+	if (samples%2) samples++;
+	freq=_sampling_f/samples;
+	sine = new Uint16[samples];
+	
+	for (i=0;i<samples;i++) sine[i]=(Uint16)(32768+32768*sin(i*2*M_PI*freq/_sampling_f));
+	
+	samp=samples;
+	return sine;
+} 
+
+int addsoundfrequenz (double f, Uint16 *buffer){
+	soundsample *s; 
+	string c;
+	sprintf(c,"%.2f",f);
+	int id = addsound(c, 128, 0, gamesounds);
+	s = samples.access(c);
+	if(s->chunk == NULL)
+	{
+		int samples;
+		buffer = make_wave(soundfreq,f,samples);
+
+		s->chunk = Mix_QuickLoad_RAW((Uint8*)buffer,samples); 
+		s->chunk->volume = 128;
+	}
+	return id;
+}
+//wrack end

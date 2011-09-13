@@ -1,3 +1,6 @@
+//add frequenz sound to sound gamesounds
+extern int addsoundfrequenz(double f, Uint16 *buffer);
+
 //selection from the scanned circuit
 selinfo circsel;
 
@@ -6,6 +9,8 @@ const uint TEX_WIRE_ON = 834;
 const uint TEX_WIRE_ONE_WAY = 832;
 const uint TEX_SWITCH_ON = 456;
 const uint TEX_SWITCH_OFF = 417;
+const uint TEX_SWITCH_COLLIDE_ON = 210;
+const uint TEX_SWITCH_COLLIDE_OFF = 504;
 const uint TEX_TORCH_ON = 774;
 const uint TEX_TORCH_OFF = 776;
 const uint TEX_LED_ON = 764;
@@ -15,11 +20,14 @@ const uint TEX_BUTTON_OFF = 418;
 const uint TEX_RADIO_BUTTON_OFF = 113;
 const uint TEX_RADIO_BUTTON_ON = 201;
 const uint TEX_BUFFER = 780;
+const uint TEX_RECTANGLE_SIGNAL_SWITCH = 593;
 
 const uint TEX_RECTANGLE_SIGNAL = 833;
 const uint TEX_TIMER = 784;
 const uint TEX_TIME_HIGH = 832;
 const uint TEX_TIME_LOW = 831;
+
+const uint TEX_SPEAKER = 711;
 
 // directions for all 6 neighbors
 int xi[6] = {-1, 1, 0, 0, 0, 0};  
@@ -47,6 +55,9 @@ enum IO_elem_type
 	IOE_RECTANGLE_SIGNAL,
 	IOE_BUTTON,
 	IOE_RADIO_BUTTON,
+	IOE_RECTANGLE_SIGNAL_SWITCH,
+	IOE_SWITCH_COLLIDE,
+	IOE_SPEAKER
 };
 
 // for simulation
@@ -171,6 +182,63 @@ struct LED:IO_elem
 	}
 };
 
+struct SPEAKER:IO_elem
+{
+	int sid;
+	int chanel;
+	vec pos;
+	Uint16 *buffer;
+	bool plays;
+	double frequenz;
+
+	SPEAKER (cube *_c, int _x,int _y,int _z, bool _default_state){
+		c = _c;
+		x=_x;
+		y=_y;
+		z=_z;
+		type=IO_TYPE_I;
+		default_state=_default_state;
+		sim_state=default_state;
+		sim_step=0;
+		renderable = false;
+		etype = IOE_SPEAKER;
+		pos = vec(x,y,z);
+		sid = chanel = -1;
+		plays = false;
+		frequenz = 0;
+	}
+	
+	uint render_result(){ return 0; }
+
+	void sim_result(int curtime)
+	{
+		sim_state = sim_outputs_or(curtime);
+		if(sid>=0){
+			if(sim_state && !plays) play();
+			if(!sim_state && plays) stop();
+		}
+	}
+
+	void set_frequenz(int hz, int mhz)
+	{
+		frequenz = (double)hz + (double)mhz/1000;
+		sid = addsoundfrequenz(frequenz ,buffer);
+	}
+
+	void play()
+	{
+		chanel = playsound(sid, &pos, NULL, -1, 0, chanel, 200);
+		plays = true;
+	}
+
+	void stop()
+	{
+		stopsound(sid,chanel,0);
+		chanel = -1;
+		plays = false;
+	}
+};
+
 struct TORCH:IO_elem
 {
 	TORCH (cube *_c,int _x,int _y,int _z, bool _default_state){
@@ -234,6 +302,7 @@ struct BUFFER:IO_elem
 
 struct SWITCH:IO_elem
 {
+	SWITCH(){};
 	SWITCH (cube *_c,int _x,int _y,int _z, bool _default_state){
 		c = _c;
 		x=_x;
@@ -258,6 +327,33 @@ struct SWITCH:IO_elem
 		else
 		{
 			return TEX_SWITCH_OFF;
+		}
+	}
+};
+
+struct SWITCH_COLLIDE:SWITCH{
+	SWITCH_COLLIDE (cube *_c,int _x,int _y,int _z, bool _default_state){
+		c = _c;
+		x=_x;
+		y=_y;
+		z=_z;
+		type=IO_TYPE_O;
+		default_state=_default_state;
+		sim_state=default_state;
+		sim_step=0;
+		renderable = true;
+		etype = IOE_SWITCH_COLLIDE;
+	}
+
+	uint render_result()
+	{
+		if(sim_state)
+		{
+			return TEX_SWITCH_COLLIDE_ON;
+		}
+		else
+		{
+			return TEX_SWITCH_COLLIDE_OFF;
 		}
 	}
 };
@@ -307,6 +403,7 @@ struct RECTANGLE_SIGNAL:IO_elem
 	int all_time; // low time + high time
 	int remain_time;
 
+	RECTANGLE_SIGNAL(){};
 	RECTANGLE_SIGNAL (cube *_c,int _x,int _y,int _z, bool _default_state){
 		c = _c;
 		x=_x;
@@ -325,20 +422,18 @@ struct RECTANGLE_SIGNAL:IO_elem
 		if(all_time==0)
 		{
 			sim_state = false;
+			return;
+		}
+		
+		remain_time -= curtime;
+		if(remain_time<=0) remain_time = all_time;
+		if(remain_time>high_time)
+		{
+			sim_state = false;
 		}
 		else
 		{
-			remain_time -= curtime;
-			if(remain_time<=0) remain_time = all_time;
-			if(remain_time>high_time)
-			{
-				sim_state = false;
-			}
-			else
-			{
-				sim_state = true;
-			}
-
+			sim_state = true;
 		}
 	}
 
@@ -350,6 +445,49 @@ struct RECTANGLE_SIGNAL:IO_elem
 	}
 };
 
+struct RECTANGLE_SIGNAL_SWITCH:RECTANGLE_SIGNAL
+{
+	RECTANGLE_SIGNAL_SWITCH (cube *_c,int _x,int _y,int _z, bool _default_state){
+		c = _c;
+		x=_x;
+		y=_y;
+		z=_z;
+		type=IO_TYPE_IO;
+		default_state=_default_state;
+		sim_state=default_state;
+		sim_step=0;
+		renderable = false;
+		etype = IOE_RECTANGLE_SIGNAL_SWITCH;
+		all_time = 0;
+	}	
+
+	void sim_result(int curtime){
+		if(all_time==0)
+		{
+			sim_state = false;
+			return;
+		}
+
+		if(sim_outputs_or(curtime))
+		{
+			remain_time -= curtime;
+			if(remain_time<=0) remain_time = all_time;
+			if(remain_time>high_time)
+			{
+				sim_state = false;
+			}
+			else
+			{
+				sim_state = true;
+			}
+		}
+		else
+		{
+			sim_state = false;
+			remain_time = all_time;
+		}
+	}
+};
 
 struct BUTTON:IO_elem
 {
@@ -409,8 +547,13 @@ struct BUTTON:IO_elem
 
 vector <IO_elem*> elements;
 vector <IO_elem*> I_elements;
+vector <IO_elem*> IO_renderables;
+vector <IO_elem*> IO_colidables;
+
 #define loopelements() loopv(elements)
 #define loopielements() loopv(I_elements)
+#define looprelements() loopv(IO_renderables)
+#define loopcelements() loopv(IO_colidables)
 
 IO_elem *findelement(int x,int y,int z){
 	loopelements()
@@ -467,6 +610,14 @@ void settimes_elem(int htime, int ltime,IO_elem *e){
 	{
 		((BUTTON*)e)->set_time(htime);
 	}
+	else if(e->etype == IOE_RECTANGLE_SIGNAL_SWITCH)
+	{
+		((RECTANGLE_SIGNAL_SWITCH*)e)->set_time(htime,ltime);
+	}
+	else if(e->etype == IOE_SPEAKER)
+	{
+		((SPEAKER*)e)->set_frequenz(htime,ltime);
+	}
 	else
 	{
 		conoutf("\f1No timing element!\f1");
@@ -476,11 +627,19 @@ void settimes_elem(int htime, int ltime,IO_elem *e){
 void gettimes_elem(IO_elem *e){
 	if(e->etype == IOE_RECTANGLE_SIGNAL)
 	{
-		conoutf("htime: %d; alltime: %d",((RECTANGLE_SIGNAL*)e)->high_time,((RECTANGLE_SIGNAL*)e)->all_time);
+		conoutf("high time: %d ms; low time: %d ms",((RECTANGLE_SIGNAL*)e)->high_time,((RECTANGLE_SIGNAL*)e)->all_time - ((RECTANGLE_SIGNAL*)e)->high_time);
 	}
 	else if(e->etype == IOE_BUTTON)
 	{
-		conoutf("htime: %d",((BUTTON*)e)->high_time);
+		conoutf("high time: %d ms",((BUTTON*)e)->high_time);
+	}
+	if(e->etype == IOE_RECTANGLE_SIGNAL_SWITCH)
+	{
+		conoutf("high time: %d ms; low time: %d ms",((RECTANGLE_SIGNAL_SWITCH*)e)->high_time,((RECTANGLE_SIGNAL_SWITCH*)e)->all_time - ((RECTANGLE_SIGNAL_SWITCH*)e)->high_time);
+	}
+	else if(e->etype == IOE_SPEAKER)
+	{
+		conoutf("frequenz: %.3f Hz",((SPEAKER*)e)->frequenz);
 	}
 	else
 	{
@@ -561,22 +720,24 @@ void wire_step(int ei,int wi,int faces=6){
 	current_wire_parts.remove(wi);
 }
 
-vector <IO_elem*> IO_renderables;
-#define looprelements() loopv(IO_renderables)
 bool scaned = false;
-
+//TODO stop and clear sounds
 void lclear()
 {
 	scaned = false;
-	looprelements()
-	{
-		loopj(3){
-			IO_renderables[i]->c->faces[j] = IO_renderables[i]->faces[j];
+	loopelements(){
+		// reset renderables faces
+		if(elements[i]->renderable)
+		{
+			loopj(3) elements[i]->c->faces[j] = elements[i]->faces[j];
 		}
+		//stop all sounds
+		if(elements[i]->etype == IOE_SPEAKER) ((SPEAKER *)elements[i])->stop();
 	}
 	elements.deletecontents();
 	I_elements.setsize(0);
 	IO_renderables.setsize(0);
+	IO_colidables.setsize(0);
 	changed(circsel);
 }
 COMMAND(lclear,""); // clear circuit
@@ -622,7 +783,6 @@ void init_element_times(IO_elem *e)
 				if(is_tex_cube(c,TEX_TIMER))
 				{
 					// look if has a high and a low
-					// 20ms minimal time
 					c = &lookupcube(nx,ny,z+circsel.grid, circsel.grid);
 					if(is_tex_cube(c,TEX_TIME_HIGH)) htime += 1<<k;
 					c = &lookupcube(nx,ny,z-circsel.grid, circsel.grid);
@@ -656,6 +816,9 @@ void lscan() {
 				case TEX_SWITCH_OFF:
 					elements.add(new SWITCH(c,x ,y ,z, false));
 					break;
+				case TEX_SWITCH_COLLIDE_OFF:
+					IO_colidables.add(elements.add(new SWITCH_COLLIDE(c,x ,y ,z, false)));
+					break;
 				case TEX_TORCH_ON:
 					elements.add(new TORCH(c,x ,y ,z, true));
 					break;	
@@ -671,6 +834,9 @@ void lscan() {
 				case TEX_RECTANGLE_SIGNAL:
 					init_element_times(elements.add(new RECTANGLE_SIGNAL(c,x ,y ,z, false)));
 					break;
+				case TEX_RECTANGLE_SIGNAL_SWITCH:
+					init_element_times(elements.add(new RECTANGLE_SIGNAL_SWITCH(c,x ,y ,z, false)));
+					break;
 				case TEX_BUTTON_ON:
 					init_element_times(elements.add(new BUTTON(c,x ,y ,z, true)));
 					break;
@@ -685,6 +851,9 @@ void lscan() {
 					break;
 				case TEX_BUFFER:
 					elements.add(new BUFFER(c,x ,y ,z, false));
+					break;
+				case TEX_SPEAKER:
+					init_element_times(I_elements.add(elements.add(new SPEAKER(c,x ,y ,z, false)))); //I elements to I_elements for simulation (only I not IO)
 					break;
 			}
 		}
@@ -739,6 +908,20 @@ void lscan() {
 	scaned = true;
 }
 COMMAND(lscan,""); // scans selection and adds new elements to circuit
+
+void mplscan(selinfo &_sel, bool local)
+{
+	if(local) game::edittrigger(_sel, EDIT_LSCAN);
+	sel = _sel;
+	lscan();
+}
+
+void mplscan()
+{
+	mplscan(sel,true);
+}
+
+COMMAND(mplscan,""); // scans selection and adds new elements to circuit
 
 void lrescan() {
 	sel = circsel;
@@ -1003,6 +1186,31 @@ void lshoottoogle(const vec &to)
 		if(elements[i]->etype == IOE_SWITCH || elements[i]->etype == IOE_BUTTON || elements[i]->etype == IOE_RADIO_BUTTON)
 		{
 			if(incube(to, vec(elements[i]->x,elements[i]->y,elements[i]->z), circsel.grid)) elements[i]->toggle();
+		}
+	}
+}
+
+/* collidable elements */
+bool cube_player_aabb_colli(ivec co,int size, physent *d)
+{
+	int crad = size/2;
+	int off = 1; // 1 offset
+	if(
+		fabs(d->o.x - co.x - crad) >= d->radius + off + crad || 
+		fabs(d->o.y - co.y - crad) >= d->radius + off + crad || 
+		d->o.z + d->aboveeye + off <= co.z || 
+		d->o.z - d->eyeheight - off >= co.z + size) return false;
+	return true;
+};
+
+void lcollidebutton(physent *d){
+	if(!scaned || lpause) return;
+
+	loopcelements(){
+		if(cube_player_aabb_colli(ivec(IO_colidables[i]->x, IO_colidables[i]->y, IO_colidables[i]->z), circsel.grid, d)){
+			IO_colidables[i]->sim_state = true;
+		}else{
+			IO_colidables[i]->sim_state = false;
 		}
 	}
 }
