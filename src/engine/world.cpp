@@ -2,6 +2,8 @@
 
 #include "engine.h"
 
+extern void lclear(); //wrack
+
 VARR(mapversion, 1, MAPVERSION, 0);
 VARNR(mapscale, worldscale, 1, 0, 0);
 VARNR(mapsize, worldsize, 1, 0, 0);
@@ -1095,6 +1097,8 @@ void resetmap()
 
     entities::clearents();
     outsideents.setsize(0);
+
+	lclear(); //wrack
 }
 
 void startmap(const char *name)
