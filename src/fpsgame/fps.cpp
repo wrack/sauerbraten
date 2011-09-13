@@ -1,8 +1,5 @@
 #include "game.h"
-//wrack
-extern void updatelogicsim(int curtime);
-extern void lcollidebutton(physent *d);
-//wrack end
+extern void updatelogicsim(int curtime); //wrack
 
 namespace game
 {
@@ -203,7 +200,6 @@ namespace game
             {
                 if(lastmillis - d->lastaction >= d->gunwait) d->gunwait = 0;
                 if(d->quadmillis) entities::checkquad(curtime, d);
-				lcollidebutton(d); //wrack
             }
             else if(d->state==CS_DEAD && d->ragdoll) moveragdoll(d);
 
@@ -256,6 +252,7 @@ namespace game
         updatemonsters(curtime);
 		//wrack
 		updatelogicsim(curtime);
+		
         if(player1->state==CS_DEAD)
         {
             if(player1->ragdoll) moveragdoll(player1);
@@ -271,7 +268,6 @@ namespace game
             moveplayer(player1, 10, true);
             swayhudgun(curtime);
             entities::checkitems(player1);
-			lcollidebutton(player1); //wrack
             if(m_sp)
             {
                 if(slowmosp) checkslowmo();

@@ -1,5 +1,8 @@
+#include "game.h"
+
 //add frequenz sound to sound gamesounds
 extern int addsoundfrequenz(double f, Uint16 *buffer);
+//extern vector<physent *> players;
 
 //selection from the scanned circuit
 selinfo circsel;
@@ -554,6 +557,7 @@ vector <IO_elem*> IO_colidables;
 #define loopielements() loopv(I_elements)
 #define looprelements() loopv(IO_renderables)
 #define loopcelements() loopv(IO_colidables)
+
 
 IO_elem *findelement(int x,int y,int z){
 	loopelements()
@@ -1147,6 +1151,39 @@ void renderlogicsim(){
 }
 
 /* Physic */
+
+/* collidable elements */
+bool cube_player_aabb_colli(ivec co,int size, physent *d)
+{
+	int crad = size/2;
+	int off = 1; // 1 offset
+	if(
+		fabs(d->o.x - co.x - crad) >= d->radius + off + crad || 
+		fabs(d->o.y - co.y - crad) >= d->radius + off + crad || 
+		d->o.z + d->aboveeye + off <= co.z || 
+		d->o.z - d->eyeheight - off >= co.z + size) return false;
+	return true;
+};
+
+
+void lcollidebutton(){
+	bool coll;
+	loopcelements(){
+		coll = false;
+		loopvj(game::players)
+		{
+			physent *d = game::players[j];
+			if(cube_player_aabb_colli(ivec(IO_colidables[i]->x, IO_colidables[i]->y, IO_colidables[i]->z), circsel.grid, d)) coll = true;
+		}
+		if(coll){
+			IO_colidables[i]->sim_state = true;
+		}else{
+			IO_colidables[i]->sim_state = false;
+		}
+	}
+}
+
+/* logic sim */
 VARP(ltimestep, 1, 1, 3000);
 int curr_time = 0;
 
@@ -1155,6 +1192,7 @@ void updatelogicsim(int curtime)
 	if(!scaned || curtime==0 || lpause) return;
 
 	// ms loop
+	lcollidebutton();
 	loopi(curtime)
 	{
 		//step time in ms
@@ -1186,31 +1224,6 @@ void lshoottoogle(const vec &to)
 		if(elements[i]->etype == IOE_SWITCH || elements[i]->etype == IOE_BUTTON || elements[i]->etype == IOE_RADIO_BUTTON)
 		{
 			if(incube(to, vec(elements[i]->x,elements[i]->y,elements[i]->z), circsel.grid)) elements[i]->toggle();
-		}
-	}
-}
-
-/* collidable elements */
-bool cube_player_aabb_colli(ivec co,int size, physent *d)
-{
-	int crad = size/2;
-	int off = 1; // 1 offset
-	if(
-		fabs(d->o.x - co.x - crad) >= d->radius + off + crad || 
-		fabs(d->o.y - co.y - crad) >= d->radius + off + crad || 
-		d->o.z + d->aboveeye + off <= co.z || 
-		d->o.z - d->eyeheight - off >= co.z + size) return false;
-	return true;
-};
-
-void lcollidebutton(physent *d){
-	if(!scaned || lpause) return;
-
-	loopcelements(){
-		if(cube_player_aabb_colli(ivec(IO_colidables[i]->x, IO_colidables[i]->y, IO_colidables[i]->z), circsel.grid, d)){
-			IO_colidables[i]->sim_state = true;
-		}else{
-			IO_colidables[i]->sim_state = false;
 		}
 	}
 }
