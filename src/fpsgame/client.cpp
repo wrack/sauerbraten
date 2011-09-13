@@ -1,7 +1,7 @@
 #include "game.h"
 //wrack
-extern void mplscan(selinfo &sel, bool local); //wrack
-extern void lclear();
+extern void mplscan(selinfo &sel, bool local);
+extern void lclearall(bool change); 
 //wrack end
 
 namespace game
@@ -1753,7 +1753,7 @@ namespace game
     {
         if(!m_edit || (player1->state==CS_SPECTATOR && remote && !player1->privilege)) { conoutf(CON_ERROR, "\"sendmap\" only works in coop edit mode"); return; }
         conoutf("sending map...");
-		lclear(); //wrack
+		lclearall(true); //wrack
         defformatstring(mname)("sendmap_%d", lastmillis);
         save_world(mname, true);
         defformatstring(fname)("packages/base/%s.ogz", mname);

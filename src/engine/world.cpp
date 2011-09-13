@@ -2,7 +2,7 @@
 
 #include "engine.h"
 
-extern void lclear(); //wrack
+extern void lclearall(bool change); //wrack
 
 VARR(mapversion, 1, MAPVERSION, 0);
 VARNR(mapscale, worldscale, 1, 0, 0);
@@ -1079,7 +1079,9 @@ void splitocta(cube *c, int size)
 
 void resetmap()
 {
-    clearoverrides();
+	lclearall(false); //wrack
+    
+	clearoverrides();
     clearmapsounds();
     cleanreflections();
     resetblendmap();
@@ -1097,8 +1099,6 @@ void resetmap()
 
     entities::clearents();
     outsideents.setsize(0);
-
-	lclear(); //wrack
 }
 
 void startmap(const char *name)

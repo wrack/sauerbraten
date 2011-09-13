@@ -1,7 +1,7 @@
 // worldio.cpp: loading & saving of maps and savegames
 
 #include "engine.h"
-extern void lclear(); //wrack
+extern void lclearall(bool change); //wrack
 
 
 void backup(char *name, char *backupname)
@@ -422,7 +422,7 @@ void loadvslots(stream *f, int numvslots)
 
 bool save_world(const char *mname, bool nolms)
 {
-	lclear(); //wrack
+	lclearall(false); //wrack
     if(!*mname) mname = game::getclientmap();
     setmapfilenames(*mname ? mname : "untitled");
     if(savebak) backup(ogzname, bakname);
@@ -569,7 +569,7 @@ static void fixoversizedcubes(cube *c, int size)
 bool load_world(const char *mname, const char *cname)        // still supports all map formats that have existed since the earliest cube betas!
 {
     int loadingstart = SDL_GetTicks();
-	lclear(); //wrack
+	lclearall(false); //wrack
     setmapfilenames(mname, cname);
     stream *f = opengzfile(ogzname, "rb");
     if(!f) { conoutf(CON_ERROR, "could not read map %s", ogzname); return false; }

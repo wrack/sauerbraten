@@ -726,7 +726,8 @@ void wire_step(int ei,int wi,int faces=6){
 
 bool scaned = false;
 //TODO stop and clear sounds
-void lclear()
+
+void lclearall(bool change)
 {
 	scaned = false;
 	loopelements(){
@@ -742,7 +743,11 @@ void lclear()
 	I_elements.setsize(0);
 	IO_renderables.setsize(0);
 	IO_colidables.setsize(0);
-	changed(circsel);
+	if(change) changed(circsel);
+}
+void lclear()
+{
+	lclearall(true);
 }
 COMMAND(lclear,""); // clear circuit
 
@@ -805,7 +810,7 @@ int logic_progress_total = 0;
 void lscan() {
 	//if (sel.grid !=4) {conoutf ("\f1#circuit:\f2 please use gridsize 4 when selecting for scan."); return;}
 	
-	lclear();
+	lclearall(true);
 
 	circsel = sel;
 	// collect elements
