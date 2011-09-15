@@ -31,6 +31,7 @@ const uint TEX_TIME_HIGH = 832;
 const uint TEX_TIME_LOW = 831;
 
 const uint TEX_SPEAKER = 711;
+const uint TEX_PUNCHCARD = 785;
 
 // directions for all 6 neighbors
 int xi[6] = {-1, 1, 0, 0, 0, 0};  
@@ -60,7 +61,8 @@ enum IO_elem_type
 	IOE_RADIO_BUTTON,
 	IOE_RECTANGLE_SIGNAL_SWITCH,
 	IOE_SWITCH_COLLIDE,
-	IOE_SPEAKER
+	IOE_SPEAKER,
+	IOE_PUNCHCARD
 };
 
 // for simulation
@@ -319,7 +321,7 @@ struct SWITCH:IO_elem
 		etype = IOE_SWITCH;
 	}	
 	
-	void sim_result(int curtime){}
+	void sim_result(int curtime){ sim_outputs_or(curtime); } // sim outputs cause punchcard could be one
 	
 	uint render_result()
 	{
@@ -444,7 +446,7 @@ struct RECTANGLE_SIGNAL:IO_elem
 	{
 		high_time = htime;
 		all_time = high_time + ltime;
-		remain_time = all_time;
+		remain_time = -1;
 	}
 };
 
@@ -487,7 +489,7 @@ struct RECTANGLE_SIGNAL_SWITCH:RECTANGLE_SIGNAL
 		else
 		{
 			sim_state = false;
-			remain_time = all_time;
+			remain_time = -1;
 		}
 	}
 };
@@ -524,6 +526,7 @@ struct BUTTON:IO_elem
 	}
 
 	void sim_result(int curtime){
+		sim_outputs_or(curtime); // sim outputs cause punchcad could be one
 		if(remain_time<=0)
 		{
 			sim_state = false;
@@ -544,6 +547,41 @@ struct BUTTON:IO_elem
 		else
 		{
 			return TEX_BUTTON_OFF;
+		}
+	}
+};
+
+struct PUNCHCARD:IO_elem
+{
+	// outputs is a timer element (rect signal or switchable rect signal)
+	vector <bool> card; //data
+	vector <IO_elem*> inputs; // elements to set data (switch)
+	int currstep, currdata;
+	int width;
+
+	PUNCHCARD (){
+		type=IO_TYPE_IO;
+		sim_step=0;
+		renderable = false;
+		etype = IOE_PUNCHCARD;
+		currstep = -1;
+		currdata = 0;
+		width = 0;
+	}	
+
+	void sim_result(int curtime){
+		if(width>0){
+			sim_outputs_or(curtime);
+			
+			if( ((RECTANGLE_SIGNAL *)outputs[0])->remain_time == ((RECTANGLE_SIGNAL *)outputs[0])->all_time )
+			{
+				currstep ++;
+				if(currstep >= card.length()/width) currstep = 0;
+				currdata = currstep*width;
+			}
+			
+			if(!((RECTANGLE_SIGNAL *)outputs[0])->sim_state) loopi(width) inputs[i]->sim_state = false;
+			else loopi(width) inputs[i]->sim_state = card[currdata+i];
 		}
 	}
 };
@@ -805,11 +843,84 @@ void init_element_times(IO_elem *e)
 	if(htime!=0 || ltime!=0) settimes_elem(htime, ltime,e);
 }
 
+void init_punchcard(IO_elem *e)
+{
+	cube *c;
+	int x,y,z;
+	int nx,ny,ztop;
+	int id;
+	int dir = -1;
+
+	loopi(4)
+	{
+		// only one direction on xy plane
+		x = e->x + xi[i]*circsel.grid;
+		y = e->y + yi[i]*circsel.grid;
+		z = e->z;
+		c = &lookupcube(x,y,z, circsel.grid);
+
+		if(is_tex_cube(c,TEX_PUNCHCARD))
+		{
+			//punchcard found get width
+			PUNCHCARD *pc = ((PUNCHCARD *)elements.add(new PUNCHCARD()));
+			pc->outputs.add(e);
+			
+			//look for punchcard inputs
+			loopj(4)
+			{
+				if(j==of[i]) continue; //not the signal
+				// only one direction on xy plane
+				nx = x + xi[j]*circsel.grid;
+				ny = y + yi[j]*circsel.grid;
+				id = findelement_id(nx,ny,z);
+				if(id>=0){
+					if(elements[id]->etype == IOE_SWITCH){ 
+						dir = of[j];
+						//found input
+						while(id>=0){
+							if(elements[id]->etype == IOE_SWITCH){
+								pc->inputs.add(elements[id]);
+								elements[id]->outputs.add(pc);
+								pc->width++;
+								nx += xi[i]*circsel.grid;
+								ny += yi[i]*circsel.grid;
+								id = findelement_id(nx,ny,z);
+							}else{
+								id = -1;
+							}
+						}
+						break;
+					}
+				}
+			}
+			
+			//read punchcard
+			nx = x;
+			ny = y;
+			ztop = z + circsel.grid;
+			
+			if(dir>=0 && pc->width>0)
+			{
+				while(is_tex_cube(c,TEX_PUNCHCARD))
+				{
+					for(int cw=0;cw<pc->width;cw++)
+					{
+						c = &lookupcube(nx+cw*xi[i]*circsel.grid, ny+cw*yi[i]*circsel.grid, ztop, circsel.grid);
+						if(is_tex_cube(c,TEX_TIME_HIGH)) pc->card.add(true);
+						else pc->card.add(false);
+					}
+					nx += xi[dir]*circsel.grid;
+					ny += yi[dir]*circsel.grid;
+					c = &lookupcube(nx,ny,z, circsel.grid);
+				}
+			}
+		}
+	}
+}
+
 int logic_progress = 0;
 int logic_progress_total = 0;
 void lscan() {
-	//if (sel.grid !=4) {conoutf ("\f1#circuit:\f2 please use gridsize 4 when selecting for scan."); return;}
-	
 	lclearall(true);
 
 	circsel = sel;
@@ -910,6 +1021,15 @@ void lscan() {
 				elements[i]->faces[j] = elements[i]->c->faces[j];
 				elements[i]->c->faces[j] = 0x71717171;
 			}
+		}
+	}
+	
+	//init punchcard
+	loopelements()
+	{
+		if(elements[i]->etype == IOE_RECTANGLE_SIGNAL_SWITCH || elements[i]->etype == IOE_RECTANGLE_SIGNAL)
+		{
+			init_punchcard(elements[i]);
 		}
 	}
 
@@ -1232,3 +1352,10 @@ void lshoottoogle(const vec &to)
 		}
 	}
 }
+
+
+//debug
+void xyz(){
+	conoutf("x=%d y=%d z=%d",sel.o.x,sel.o.y,sel.o.z);
+}
+COMMAND(xyz,"");
