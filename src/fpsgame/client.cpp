@@ -512,7 +512,7 @@ namespace game
                addmsg(N_EDITT, "ri9i6",
                    sel.o.x, sel.o.y, sel.o.z, sel.s.x, sel.s.y, sel.s.z, sel.grid, sel.orient,
                    sel.cx, sel.cxs, sel.cy, sel.cys, sel.corner,
-				   66666,0);
+				   -1,0);
                 break;
             }
         }
@@ -1366,7 +1366,7 @@ namespace game
 					//change by wrack 
                    case N_EDITT: 
 						tex = getint(p); allfaces = getint(p); 
-						if(tex=66666)
+						if(tex==-1)
 						{
 							 mplscan(sel,false); break;//by wrack
 						}
