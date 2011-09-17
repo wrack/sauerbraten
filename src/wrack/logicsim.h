@@ -7,6 +7,9 @@ extern int addsoundfrequenz(double f, Uint16 *buffer);
 //selection from the scanned circuit
 selinfo circsel;
 
+//max frequncy of timers
+const uint MAX_TIMER_FREQUENCY = 16; // max 16 bit TODO: maybe max int size
+
 // texture index for scanning and rendering io elements
 const uint TEX_WIRE_ON = 834;
 const uint TEX_WIRE_ONE_WAY = 832;
@@ -32,6 +35,9 @@ const uint TEX_TIME_LOW = 831;
 
 const uint TEX_SPEAKER = 711;
 const uint TEX_PUNCHCARD = 785;
+const uint TEX_INOUT_BIT = 771;
+const uint TEX_OUT_BIT_OFF = 804;
+const uint TEX_OUT_BIT_ON = 768;
 
 // directions for all 6 neighbors
 int xi[6] = {-1, 1, 0, 0, 0, 0};  
@@ -62,7 +68,9 @@ enum IO_elem_type
 	IOE_RECTANGLE_SIGNAL_SWITCH,
 	IOE_SWITCH_COLLIDE,
 	IOE_SPEAKER,
-	IOE_PUNCHCARD
+	IOE_PUNCHCARD,
+	IOE_INOUT_BIT,
+	IOE_OUT_BIT
 };
 
 // for simulation
@@ -159,6 +167,80 @@ struct IO_elem
 	virtual uint render_result(){ return 0; }
 };
 
+
+struct INOUT_BIT:IO_elem
+{
+	int index;
+	
+	INOUT_BIT(){};
+	INOUT_BIT (cube *_c,int _x,int _y,int _z, bool _default_state){
+		c = _c;
+		x=_x;
+		y=_y;
+		z=_z;
+		type=IO_TYPE_IO;
+		default_state=_default_state;
+		sim_state=default_state;
+		sim_step=0;
+		renderable = false;
+		etype = IOE_INOUT_BIT;
+	}	
+};
+
+struct OUT_BIT:IO_elem
+{
+	int index;
+	
+	OUT_BIT(){};
+	OUT_BIT (cube *_c,int _x,int _y,int _z, bool _default_state){
+		c = _c;
+		x=_x;
+		y=_y;
+		z=_z;
+		type=IO_TYPE_O;
+		default_state=_default_state;
+		sim_state=default_state;
+		sim_step=0;
+		renderable = false;
+		etype = IOE_OUT_BIT;
+	}	
+	void sim_result(int curtime){ sim_outputs_or(curtime); } // sim outputs cause punchcard could be one
+};
+
+struct IO_elem_timer_inoutbitable:IO_elem
+{
+	bool has_hbits, has_lbits;
+	
+	vector <INOUT_BIT*> hbits; // frequenz high bits
+	vector <INOUT_BIT*> lbits; // frequenz low bits
+	
+	IO_elem_timer_inoutbitable()
+	{
+		has_hbits = has_lbits = false; 
+	}
+
+	virtual void scan_inout_bits(int curtime){}
+
+	virtual void sim_outbits(int curtime){
+		loopv(hbits) hbits[i]->sim(sim_step,curtime);
+		loopv(lbits) lbits[i]->sim(sim_step,curtime);
+	}
+
+	virtual void add_hinout_bit(INOUT_BIT* outbit){
+		hbits.add(outbit);
+		has_hbits = true;
+	}
+
+	virtual void add_linout_bit(INOUT_BIT* outbit){
+		lbits.add(outbit);
+		has_lbits = true;
+	}
+
+	virtual bool has_inout_bits(){
+		return (has_hbits || has_lbits);
+	}
+};
+
 struct LED:IO_elem
 {
 	LED (cube *_c, int _x,int _y,int _z, bool _default_state){
@@ -187,7 +269,9 @@ struct LED:IO_elem
 	}
 };
 
-struct SPEAKER:IO_elem
+
+
+struct SPEAKER:IO_elem_timer_inoutbitable
 {
 	int sid;
 	int chanel;
@@ -217,6 +301,8 @@ struct SPEAKER:IO_elem
 
 	void sim_result(int curtime)
 	{
+		if(has_inout_bits()) scan_inout_bits(curtime);
+		if(frequenz==0) return;
 		sim_state = sim_outputs_or(curtime);
 		if(sid>=0){
 			if(sim_state && !plays) play();
@@ -224,9 +310,11 @@ struct SPEAKER:IO_elem
 		}
 	}
 
-	void set_frequenz(int hz, int mhz)
+	void set_frequenz(double freq)
 	{
-		frequenz = (double)hz + (double)mhz/1000;
+		frequenz = freq;
+		stop();
+		if(frequenz == 0) return;
 		sid = addsoundfrequenz(frequenz ,buffer);
 	}
 
@@ -241,6 +329,21 @@ struct SPEAKER:IO_elem
 		stopsound(sid,chanel,0);
 		chanel = -1;
 		plays = false;
+	}
+
+	void scan_inout_bits(int curtime)
+	{
+		sim_outbits(curtime);
+		int hz = 0;
+		int mhz = 0;
+		double freq = 0;
+		
+		loopi(MAX_TIMER_FREQUENCY){
+			if(has_hbits && hbits.inrange(i)) hz += (int)hbits[i]->sim_state<<hbits[i]->index;
+			if(has_lbits && lbits.inrange(i)) mhz += (int)lbits[i]->sim_state<<lbits[i]->index;
+		}
+		freq = (double)hz + (double)mhz/1000;
+		if(freq != frequenz) set_frequenz(freq);
 	}
 };
 
@@ -321,7 +424,7 @@ struct SWITCH:IO_elem
 		etype = IOE_SWITCH;
 	}	
 	
-	void sim_result(int curtime){ sim_outputs_or(curtime); } // sim outputs cause punchcard could be one
+	void sim_result(int curtime){ } 
 	
 	uint render_result()
 	{
@@ -402,9 +505,10 @@ struct RADIO_BUTTON:IO_elem
 	}
 };
 
-struct RECTANGLE_SIGNAL:IO_elem
+struct RECTANGLE_SIGNAL:IO_elem_timer_inoutbitable
 {
-	int high_time;
+	int high_time, low_time;
+	int next_htime, next_ltime;
 	int all_time; // low time + high time
 	int remain_time;
 
@@ -420,33 +524,69 @@ struct RECTANGLE_SIGNAL:IO_elem
 		sim_step=0;
 		renderable = false;
 		etype = IOE_RECTANGLE_SIGNAL;
-		all_time = 0;
+		all_time = high_time = low_time = 0;
+		next_htime = next_ltime = 0;
+		remain_time = -1;
 	}	
 	
 	void sim_result(int curtime){
-		if(all_time==0)
-		{
-			sim_state = false;
-			return;
-		}
+		if(has_inout_bits()) scan_inout_bits(curtime);
+		if(nosim()) return;
 		
+		time_step(curtime);
+		sim_state = !(remain_time>high_time);
+	}
+
+	void time_step(int curtime)
+	{
 		remain_time -= curtime;
-		if(remain_time<=0) remain_time = all_time;
-		if(remain_time>high_time)
+		if(remain_time < 0)
 		{
-			sim_state = false;
-		}
-		else
-		{
-			sim_state = true;
+			set_time(next_htime, next_ltime);
+			remain_time = all_time;
 		}
 	}
 
 	void set_time(int htime,int ltime)
 	{
-		high_time = htime;
-		all_time = high_time + ltime;
+		high_time = next_htime = htime;
+		low_time = next_ltime = ltime;
+		all_time = high_time + low_time;
 		remain_time = -1;
+	}
+
+	bool nosim()
+	{
+		if(all_time==0 && next_htime == 0 && next_ltime == 0)
+		{
+			reset_elem();
+			return true;
+		}
+		return false;
+	}
+
+	void reset_elem()
+	{
+		sim_state = false;
+		remain_time = -1;
+	}
+
+	void scan_inout_bits(int curtime)
+	{
+		sim_outbits(curtime);
+		int htime = has_hbits ? 0 : high_time;
+		int ltime = has_lbits ? 0 : low_time;
+		
+		loopi(MAX_TIMER_FREQUENCY){
+			if(has_hbits && hbits.inrange(i)) htime += (int)hbits[i]->sim_state<<hbits[i]->index;
+			if(has_lbits && lbits.inrange(i)) ltime += (int)lbits[i]->sim_state<<lbits[i]->index;
+		}
+		
+		if(htime != high_time || ltime != low_time)
+		{		
+			next_htime = htime;
+			next_ltime = ltime;
+		}
 	}
 };
 
@@ -463,33 +603,23 @@ struct RECTANGLE_SIGNAL_SWITCH:RECTANGLE_SIGNAL
 		sim_step=0;
 		renderable = false;
 		etype = IOE_RECTANGLE_SIGNAL_SWITCH;
-		all_time = 0;
+		all_time = high_time = low_time = 0;
+		next_htime = next_ltime = 0;
+		remain_time = -1;
 	}	
 
 	void sim_result(int curtime){
-		if(all_time==0)
-		{
-			sim_state = false;
-			return;
-		}
+		if(has_inout_bits()) scan_inout_bits(curtime);
+		if(nosim()) return;
 
 		if(sim_outputs_or(curtime))
 		{
-			remain_time -= curtime;
-			if(remain_time<=0) remain_time = all_time;
-			if(remain_time>high_time)
-			{
-				sim_state = false;
-			}
-			else
-			{
-				sim_state = true;
-			}
+			time_step(curtime);
+			sim_state = !(remain_time>high_time);
 		}
 		else
 		{
-			sim_state = false;
-			remain_time = -1;
+			reset_elem();
 		}
 	}
 };
@@ -553,36 +683,60 @@ struct BUTTON:IO_elem
 
 struct PUNCHCARD:IO_elem
 {
-	// outputs is a timer element (rect signal or switchable rect signal)
+	// outputs is 0 is forth bit and 1 is back bit
 	vector <bool> card; //data
 	vector <IO_elem*> inputs; // elements to set data (switch)
+	vector <OUT_BIT*> row; // elements to set data to show the current row
 	int currstep, currdata;
-	int width;
+	int width, length;
+	bool last_fstate, fstate;
+	bool last_bstate, bstate;
 
 	PUNCHCARD (){
 		type=IO_TYPE_IO;
 		sim_step=0;
 		renderable = false;
 		etype = IOE_PUNCHCARD;
-		currstep = -1;
-		currdata = 0;
-		width = 0;
+		currstep = currdata = 0;
+		width = length = 0;
+		last_fstate = fstate = last_bstate = bstate = false;
 	}	
 
 	void sim_result(int curtime){
 		if(width>0){
-			sim_outputs_or(curtime);
-			
-			if( ((RECTANGLE_SIGNAL *)outputs[0])->remain_time == ((RECTANGLE_SIGNAL *)outputs[0])->all_time )
+			//forth
+			outputs[0]->sim(sim_step,curtime);
+			fstate = outputs[0]->sim_state;
+			if(!last_fstate && fstate) step_forth();
+
+			//back
+			if(outputs.inrange(1))
 			{
-				currstep ++;
-				if(currstep >= card.length()/width) currstep = 0;
-				currdata = currstep*width;
+				outputs[1]->sim(sim_step,curtime);
+				bstate = outputs[1]->sim_state;
+				if(!last_bstate && bstate) step_back();
 			}
 			
-			if(!((RECTANGLE_SIGNAL *)outputs[0])->sim_state) loopi(width) inputs[i]->sim_state = false;
-			else loopi(width) inputs[i]->sim_state = card[currdata+i];
+			loopi(width) inputs[i]->sim_state = card[currdata+i];
+			loopv(row) row[i]->sim_state = (currstep==row[i]->index) ? true : false;
+
+			last_fstate = fstate;
+			last_bstate = bstate;
 		}
+	}
+
+	void step_forth()
+	{
+		currstep ++;
+		if(currstep == length) currstep = 0;
+		currdata = currstep*width;
+	}
+
+	void step_back()
+	{
+		currstep --;
+		if(currstep < 0) currstep = length - 1;
+		currdata = currstep*width;
 	}
 };
 
@@ -627,6 +781,14 @@ int findelement_id(int x,int y,int z){
 	return -1;
 }
 
+int findelement_id(int x,int y,int z,int etype){
+	loopelements()
+	{
+		if(elements[i]->x==x && elements[i]->y==y && elements[i]->z==z &&  elements[i]->etype==etype) return i;
+	}
+	return -1;
+}
+
 IO_elem *findelement(cube *_c){
 	loopelements()
 	{
@@ -643,49 +805,51 @@ int findelement_id(cube *_c){
 	return -1;
 }
 
+int findelement_id(cube *_c,int etype){
+	loopelements()
+	{
+		if(elements[i]->c==_c && elements[i]->etype==etype) return i;
+	}
+	return -1;
+}
+
 void settimes_elem(int htime, int ltime,IO_elem *e){
-	if(e->etype == IOE_RECTANGLE_SIGNAL)
-	{
-		((RECTANGLE_SIGNAL*)e)->set_time(htime,ltime);
-	}
-	else if(e->etype == IOE_BUTTON)
-	{
-		((BUTTON*)e)->set_time(htime);
-	}
-	else if(e->etype == IOE_RECTANGLE_SIGNAL_SWITCH)
-	{
-		((RECTANGLE_SIGNAL_SWITCH*)e)->set_time(htime,ltime);
-	}
-	else if(e->etype == IOE_SPEAKER)
-	{
-		((SPEAKER*)e)->set_frequenz(htime,ltime);
-	}
-	else
-	{
-		conoutf("\f1No timing element!\f1");
+	switch(e->etype){
+		case IOE_RECTANGLE_SIGNAL:
+			((RECTANGLE_SIGNAL*)e)->set_time(htime,ltime);
+			break;
+		case IOE_BUTTON:
+			((BUTTON*)e)->set_time(htime);
+			break;
+		case IOE_RECTANGLE_SIGNAL_SWITCH:
+			((RECTANGLE_SIGNAL_SWITCH*)e)->set_time(htime,ltime);
+			break;
+		case IOE_SPEAKER:
+			((SPEAKER*)e)->set_frequenz((double)htime + (double)ltime/1000);
+			break;
+		default:
+			conoutf("\f1No timing element!\f1");
+			break;
 	}
 }
 
 void gettimes_elem(IO_elem *e){
-	if(e->etype == IOE_RECTANGLE_SIGNAL)
-	{
-		conoutf("high time: %d ms; low time: %d ms",((RECTANGLE_SIGNAL*)e)->high_time,((RECTANGLE_SIGNAL*)e)->all_time - ((RECTANGLE_SIGNAL*)e)->high_time);
-	}
-	else if(e->etype == IOE_BUTTON)
-	{
-		conoutf("high time: %d ms",((BUTTON*)e)->high_time);
-	}
-	if(e->etype == IOE_RECTANGLE_SIGNAL_SWITCH)
-	{
-		conoutf("high time: %d ms; low time: %d ms",((RECTANGLE_SIGNAL_SWITCH*)e)->high_time,((RECTANGLE_SIGNAL_SWITCH*)e)->all_time - ((RECTANGLE_SIGNAL_SWITCH*)e)->high_time);
-	}
-	else if(e->etype == IOE_SPEAKER)
-	{
-		conoutf("frequenz: %.3f Hz",((SPEAKER*)e)->frequenz);
-	}
-	else
-	{
-		conoutf("\f1No timing element!\f1");
+	switch(e->etype){
+		case IOE_RECTANGLE_SIGNAL:
+			conoutf("high time: %d ms; low time: %d ms",((RECTANGLE_SIGNAL*)e)->high_time,((RECTANGLE_SIGNAL*)e)->low_time);
+			break;
+		case IOE_BUTTON:
+			conoutf("high time: %d ms",((BUTTON*)e)->high_time);
+			break;
+		case IOE_RECTANGLE_SIGNAL_SWITCH:
+			conoutf("high time: %d ms; low time: %d ms",((RECTANGLE_SIGNAL_SWITCH*)e)->high_time, ((RECTANGLE_SIGNAL_SWITCH*)e)->low_time);
+			break;
+		case IOE_SPEAKER:
+			conoutf("frequenz: %.3f Hz",((SPEAKER*)e)->frequenz);
+			break;
+		default:
+			conoutf("\f1No timing element!\f1");
+			break;
 	}
 }
 
@@ -763,7 +927,6 @@ void wire_step(int ei,int wi,int faces=6){
 }
 
 bool scaned = false;
-//TODO stop and clear sounds
 
 void lclearall(bool change)
 {
@@ -801,7 +964,7 @@ bool is_tex_cube(cube *c,const int tex)
 	return false;
 }
 
-void init_element_times(IO_elem *e)
+void init_element_times(IO_elem *e,bool inoutbitable = false)
 {
 	int htime = 0;
 	int ltime = 0;
@@ -809,6 +972,9 @@ void init_element_times(IO_elem *e)
 	cube *c;
 	int x,y,z;
 	int nx,ny;
+	int id;
+	INOUT_BIT * iob;
+
 	loopi(4)
 	{
 		// only one direction on xy plane
@@ -820,8 +986,7 @@ void init_element_times(IO_elem *e)
 		if(is_tex_cube(c,TEX_TIMER))
 		{
 			// Timer input found
-			// max 16 bit TODO: maybe max int size / 20ms (times are stored in int)
-			loopk(16)
+			loopk(MAX_TIMER_FREQUENCY)
 			{
 				nx = x + k*xi[i]*circsel.grid;
 				ny = y + k*yi[i]*circsel.grid;
@@ -832,8 +997,29 @@ void init_element_times(IO_elem *e)
 					// look if has a high and a low
 					c = &lookupcube(nx,ny,z+circsel.grid, circsel.grid);
 					if(is_tex_cube(c,TEX_TIME_HIGH)) htime += 1<<k;
+					if(inoutbitable)
+					{
+						id = findelement_id(c,IOE_INOUT_BIT);
+						if(id>=0)
+						{
+							iob = ((INOUT_BIT *) elements[id]);
+							((IO_elem_timer_inoutbitable *) e)->add_hinout_bit(iob);
+							iob->index = k;
+						}
+					}
+
 					c = &lookupcube(nx,ny,z-circsel.grid, circsel.grid);
 					if(is_tex_cube(c,TEX_TIME_LOW)) ltime += 1<<k;
+					if(inoutbitable)
+					{
+						id = findelement_id(c,IOE_INOUT_BIT);
+						if(id>=0)
+						{
+							iob = ((INOUT_BIT *) elements[id]);
+							((IO_elem_timer_inoutbitable *) e)->add_linout_bit(iob);
+							iob->index = k;
+						}
+					}
 				}else{
 					break;
 				}
@@ -847,10 +1033,10 @@ void init_punchcard(IO_elem *e)
 {
 	cube *c;
 	int x,y,z;
-	int nx,ny,ztop;
+	int nx,ny,ztop,zbot;
 	int id;
 	int dir = -1;
-
+	bool found_card = false;
 	loopi(4)
 	{
 		// only one direction on xy plane
@@ -864,55 +1050,83 @@ void init_punchcard(IO_elem *e)
 			//punchcard found get width
 			PUNCHCARD *pc = ((PUNCHCARD *)elements.add(new PUNCHCARD()));
 			pc->outputs.add(e);
+			found_card = true;
 			
 			//look for punchcard inputs
+			bool input_found = false;
 			loopj(4)
 			{
 				if(j==of[i]) continue; //not the signal
 				// only one direction on xy plane
 				nx = x + xi[j]*circsel.grid;
 				ny = y + yi[j]*circsel.grid;
-				id = findelement_id(nx,ny,z);
+				id = findelement_id(nx,ny,z,IOE_OUT_BIT);
 				if(id>=0){
-					if(elements[id]->etype == IOE_SWITCH){ 
-						dir = of[j];
-						//found input
-						while(id>=0){
-							if(elements[id]->etype == IOE_SWITCH){
-								pc->inputs.add(elements[id]);
-								elements[id]->outputs.add(pc);
-								pc->width++;
-								nx += xi[i]*circsel.grid;
-								ny += yi[i]*circsel.grid;
-								id = findelement_id(nx,ny,z);
-							}else{
-								id = -1;
-							}
-						}
-						break;
+					dir = of[j];
+					//found input
+					while(id>=0){
+						pc->inputs.add(elements[id]);
+						elements[id]->outputs.add(pc);
+						((OUT_BIT *)elements[id])->index = pc->width;
+						pc->width++;
+						nx += xi[i]*circsel.grid;
+						ny += yi[i]*circsel.grid;
+						id = findelement_id(nx,ny,z,IOE_OUT_BIT);
 					}
+					break;
 				}
+			}
+			if(!input_found){
+				
 			}
 			
 			//read punchcard
 			nx = x;
 			ny = y;
 			ztop = z + circsel.grid;
+			zbot = z - circsel.grid;
 			
 			if(dir>=0 && pc->width>0)
 			{
 				while(is_tex_cube(c,TEX_PUNCHCARD))
 				{
+					
+					//read high bits
 					for(int cw=0;cw<pc->width;cw++)
 					{
+						//read data
 						c = &lookupcube(nx+cw*xi[i]*circsel.grid, ny+cw*yi[i]*circsel.grid, ztop, circsel.grid);
 						if(is_tex_cube(c,TEX_TIME_HIGH)) pc->card.add(true);
 						else pc->card.add(false);
+						
+						//read outbit row
+						id = findelement_id(nx+cw*xi[i]*circsel.grid, ny+cw*yi[i]*circsel.grid, zbot, IOE_OUT_BIT);
+						if(id>=0)
+						{
+							pc->row.add(((OUT_BIT *)elements[id]));
+							elements[id]->outputs.add(pc);
+							((OUT_BIT *)elements[id])->index = pc->length;
+						}
 					}
+
+					pc->length++;
+
 					nx += xi[dir]*circsel.grid;
 					ny += yi[dir]*circsel.grid;
 					c = &lookupcube(nx,ny,z, circsel.grid);
 				}
+
+				// look for back btn
+				nx -= xi[dir]*circsel.grid;
+				ny -= yi[dir]*circsel.grid;
+				id = findelement_id(nx+(pc->width)*xi[i]*circsel.grid, ny+(pc->width)*yi[i]*circsel.grid, z, IOE_INOUT_BIT);
+				if(id>=0) pc->outputs.add(elements[id]);
+			}
+			else if(found_card)
+			{
+				//not set up correctly or back btn
+				elements.pop();
+				delete pc;
 			}
 		}
 	}
@@ -952,16 +1166,16 @@ void lscan() {
 					I_elements.add(elements.add(new LED(c,x ,y ,z, false))); //I elements to I_elements for simulation (only I not IO)
 					break;
 				case TEX_RECTANGLE_SIGNAL:
-					init_element_times(elements.add(new RECTANGLE_SIGNAL(c,x ,y ,z, false)));
+					elements.add(new RECTANGLE_SIGNAL(c,x ,y ,z, false));
 					break;
 				case TEX_RECTANGLE_SIGNAL_SWITCH:
-					init_element_times(elements.add(new RECTANGLE_SIGNAL_SWITCH(c,x ,y ,z, false)));
+					elements.add(new RECTANGLE_SIGNAL_SWITCH(c,x ,y ,z, false));
 					break;
 				case TEX_BUTTON_ON:
-					init_element_times(elements.add(new BUTTON(c,x ,y ,z, true)));
+					elements.add(new BUTTON(c,x ,y ,z, true));
 					break;
 				case TEX_BUTTON_OFF:
-					init_element_times(elements.add(new BUTTON(c,x ,y ,z, false)));
+					elements.add(new BUTTON(c,x ,y ,z, false));
 					break;
 				case TEX_RADIO_BUTTON_ON:
 					elements.add(new RADIO_BUTTON(c,x ,y ,z, true));
@@ -973,7 +1187,16 @@ void lscan() {
 					elements.add(new BUFFER(c,x ,y ,z, false));
 					break;
 				case TEX_SPEAKER:
-					init_element_times(I_elements.add(elements.add(new SPEAKER(c,x ,y ,z, false)))); //I elements to I_elements for simulation (only I not IO)
+					I_elements.add(elements.add(new SPEAKER(c,x ,y ,z, false))); //I elements to I_elements for simulation (only I not IO)
+					break;
+				case TEX_INOUT_BIT:
+					elements.add(new INOUT_BIT(c,x ,y ,z, false));
+					break;
+				case TEX_OUT_BIT_OFF:
+					elements.add(new OUT_BIT(c,x ,y ,z, false));
+					break;
+				case TEX_OUT_BIT_ON:
+					elements.add(new OUT_BIT(c,x ,y ,z, true));
 					break;
 			}
 		}
@@ -1024,14 +1247,23 @@ void lscan() {
 		}
 	}
 	
-	//init punchcard
+	//init timers
 	loopelements()
 	{
-		if(elements[i]->etype == IOE_RECTANGLE_SIGNAL_SWITCH || elements[i]->etype == IOE_RECTANGLE_SIGNAL)
-		{
-			init_punchcard(elements[i]);
+		switch(elements[i]->etype){
+			case IOE_BUTTON:
+				init_element_times(elements[i]);
+				break;
+			case IOE_SPEAKER:
+			case IOE_RECTANGLE_SIGNAL:
+			case IOE_RECTANGLE_SIGNAL_SWITCH:
+				init_element_times(elements[i],true);
+				break;
 		}
 	}
+
+	//init punchcard
+	loopelements() if(elements[i]->etype == IOE_INOUT_BIT) init_punchcard(elements[i]);
 
 	changed(sel);
 	scaned = true;
@@ -1358,4 +1590,5 @@ void lshoottoogle(const vec &to)
 void xyz(){
 	conoutf("x=%d y=%d z=%d",sel.o.x,sel.o.y,sel.o.z);
 }
+
 COMMAND(xyz,"");
