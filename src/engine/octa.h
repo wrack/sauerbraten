@@ -177,6 +177,7 @@ struct cubeext
     octaentities *ents;      // list of map entites totally inside cube
     mergeinfo *merges;       // bounds of merged surfaces
     int tjoints;             // linked list of t-joints
+	
 };  
 
 struct cube
@@ -198,6 +199,9 @@ struct cube
         };
     };
     cubeext *ext;            // extended info for the cube
+	//wrack
+	int lwire_scanned;
+	IO_elem *io_elem;
 };
 
 static inline cubeext &ext(cube &c)

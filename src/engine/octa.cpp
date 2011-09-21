@@ -30,6 +30,8 @@ cube *newcubes(uint face)
     {
         c->children = NULL;
         c->ext = NULL;
+		c->io_elem = NULL; //wrack
+		c->lwire_scanned = 0; //wrack
         setfaces(*c, face);
         loopl(6)
         {

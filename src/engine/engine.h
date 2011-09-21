@@ -6,6 +6,7 @@
 #ifndef STANDALONE
 
 #include "world.h"
+#include "../wrack/logicsim.h" //wrack
 #include "octa.h"
 #include "lightmap.h"
 #include "bih.h"
