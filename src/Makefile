@@ -32,6 +32,7 @@ CLIENT_OBJS= \
 	shared/stream.o \
 	shared/tools.o \
 	shared/zip.o \
+	wrack/logicsim.o \
 	engine/3dgui.o \
 	engine/bih.o \
 	engine/blend.o \
@@ -286,6 +287,13 @@ engine/octaedit.o: shared/ents.h shared/command.h shared/iengine.h
 engine/octaedit.o: shared/igame.h engine/world.h engine/octa.h
 engine/octaedit.o: engine/lightmap.h engine/bih.h engine/texture.h
 engine/octaedit.o: engine/model.h engine/varray.h
+
+wrack/logicsim.o: engine/engine.h shared/cube.h shared/tools.h shared/geom.h
+wrack/logicsim.o: shared/ents.h shared/command.h shared/iengine.h
+wrack/logicsim.o: shared/igame.h engine/world.h engine/octa.h
+wrack/logicsim.o: engine/lightmap.h engine/bih.h engine/texture.h
+wrack/logicsim.o: engine/model.h engine/varray.h
+
 engine/octarender.o: engine/engine.h shared/cube.h shared/tools.h
 engine/octarender.o: shared/geom.h shared/ents.h shared/command.h
 engine/octarender.o: shared/iengine.h shared/igame.h engine/world.h
