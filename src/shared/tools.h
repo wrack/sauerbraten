@@ -155,6 +155,10 @@ struct stringformatter
 #define loopvj(v)   for(int j = 0; j<(v).length(); j++)
 #define loopvk(v)   for(int k = 0; k<(v).length(); k++)
 #define loopvrev(v) for(int i = (v).length()-1; i>=0; i--)
+// Library by Wrack
+#define loopvjrev(v) for(int j = (v).length()-1; j>=0; j--)
+#define loopvkrev(v) for(int k = (v).length()-1; k>=0; k--)
+// Library by Wrack, end
 
 template <class T>
 struct databuf

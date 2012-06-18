@@ -2124,3 +2124,24 @@ bool entinmap(dynent *d, bool avoidplayers)        // brute force but effective 
     return false;
 }
 
+// Library by Wrack
+//- replace exist in world.cpp line 276 pointinsel
+static inline bool pointinsel(const vec &v, const selinfo &sel) 
+{
+    return v.x <= sel.o.x+(sel.s.x*sel.grid) &&
+           v.x >= sel.o.x &&
+           v.y <= sel.o.y+(sel.s.y*sel.grid) &&
+           v.y >= sel.o.y &&
+           v.z <= sel.o.z+(sel.s.z*sel.grid) &&
+           v.z >= sel.o.z;
+}
+//- simple box test (orig and diagonal point from orig) is inside sel_wrap = true
+bool isselinsel(selinfo &sel_in, selinfo &sel_wrap)
+{
+	vec io = sel_in.o.tovec();
+	return 
+		pointinsel(io, sel_wrap) &&
+		pointinsel(io.add(sel_in.s.tovec().mul(sel_in.grid)), sel_wrap);
+	
+}
+// Library by Wrack, end

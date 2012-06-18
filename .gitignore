@@ -1,2 +1,9 @@
+sauerbraten.pdb
 bin
-packages
+packages/*
+!packages/icons/
+packages/icons/*
+!packages/icons/wrack/
+src/vcpp
+!src/vcpp/sauerbraten.sln
+!src/vcpp/sauerbraten.suo

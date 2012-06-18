@@ -276,6 +276,7 @@ extern void entdrag(const vec &ray);
 extern bool hoveringonent(int ent, int orient);
 extern void renderentselection(const vec &o, const vec &ray, bool entmoving);
 extern float rayent(const vec &o, const vec &ray, float radius, int mode, int size, int &orient, int &ent);
+void renderlib(); // Library by Wrack
 
 VAR(gridlookup, 0, 0, 1);
 VAR(passthroughcube, 0, 1, 1);
@@ -463,6 +464,8 @@ void rendereditcursor()
     notextureshader->set();
 
     glDisable(GL_BLEND);
+
+	renderlib(); // Library by Wrack
 }
 
 void tryedit()
@@ -899,9 +902,10 @@ void freeeditinfo(editinfo *&e)
 // guard against subdivision
 #define protectsel(f) { undoblock *_u = newundocube(sel); f; pasteundo(_u); freeundo(_u); }
 
-void mpcopy(editinfo *&e, selinfo &sel, bool local)
+void mpcopy(editinfo *&e, selinfo &sel, bool local,vector <linkinfo> &linkcopys, int &linkcopygrid) // Library by Wrack, added linkcopys, linkcopygrid
 {
     if(local) game::edittrigger(sel, EDIT_COPY);
+	itemlinkcopy(linkcopys,sel,linkcopygrid); // Library by Wrack
     if(e==NULL) e = editinfos.add(new editinfo);
     if(e->copy) freeblock(e->copy);
     e->copy = NULL;
@@ -909,9 +913,10 @@ void mpcopy(editinfo *&e, selinfo &sel, bool local)
     changed(sel);
 }
 
-void mppaste(editinfo *&e, selinfo &sel, bool local)
+void mppaste(editinfo *&e, selinfo &sel, bool local,vector <linkinfo> &linkcopys, int &linkcopygrid) // Library by Wrack, added linkcopys, linkcopygrid
 {
     if(e==NULL) return;
+	itemlinkpaste(linkcopys,sel,linkcopygrid); // Library by Wrack
     if(local) game::edittrigger(sel, EDIT_PASTE);
     if(e->copy)
     {
@@ -927,7 +932,7 @@ void mppaste(editinfo *&e, selinfo &sel, bool local)
 void copy()
 {
     if(noedit(true)) return;
-    mpcopy(localedit, sel, true);
+    mpcopy(localedit, sel, true, linkcopys, linkcopygrid); // Library by Wrack, added linkcopys, linkcopygrid
 }
 
 void pastehilite()
@@ -941,7 +946,7 @@ void pastehilite()
 void paste()
 {
     if(noedit()) return;
-    mppaste(localedit, sel, true);
+    mppaste(localedit, sel, true, linkcopys, linkcopygrid); // Library by Wrack, added linkcopys, linkcopygrid
 }
 
 COMMAND(copy, "");
@@ -1475,6 +1480,7 @@ void pushsel(int *dir)
 void mpdelcube(selinfo &sel, bool local)
 {
     if(local) game::edittrigger(sel, EDIT_DELCUBE);
+	itemlinkdelete(sel); // Library by Wrack
     loopselxyz(discardchildren(c, true); emptyfaces(c));
 }
 
@@ -1924,6 +1930,7 @@ void rotatecube(cube &c, int d)   // rotates cube clockwise. see pics in cvs for
 void mpflip(selinfo &sel, bool local)
 {
     if(local) game::edittrigger(sel, EDIT_FLIP);
+	itemlinkflip(sel); // Library by Wrack
     int zs = sel.s[dimension(sel.orient)];
     makeundo();
     loopxy(sel)
@@ -1965,6 +1972,7 @@ void mprotate(int cw, selinfo &sel, bool local)
         );
     }
     changed(sel);
+	itemlinkrotate(cw, sel); // Library by Wrack
 }
 
 void rotate(int *cw)

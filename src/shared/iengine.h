@@ -70,6 +70,41 @@ struct selinfo
 struct editinfo;
 extern editinfo *localedit;
 
+// Library by Wrack
+struct linkinfo
+{
+	selinfo sel;
+	struct iteminfo *parent;
+	matrix3x3 tm;
+	linkinfo(){}
+	linkinfo(iteminfo *p, selinfo s, matrix3x3 t=matrix3x3(vec(1,0,0),vec(0,1,0),vec(0,0,1)))
+	{ 
+		parent = p; 
+		sel = s; 
+		tm = t;
+	}
+};
+struct iteminfo
+{
+	selinfo sel;
+	selinfo trans;
+	vector<linkinfo> links;
+	char* name;
+	iteminfo(){ }
+	iteminfo(selinfo &s,const char *nam=""){ 
+		sel = s; trans = s; 
+		int ms = max(s.s.x, max(s.s.y, s.s.z));
+		trans.s = ivec(ms,ms,ms);
+		name = newstring(nam);
+	}
+	void addlink(selinfo s,matrix3x3 t=matrix3x3(vec(1,0,0),vec(0,1,0),vec(0,0,1))){ links.add( linkinfo(this,s,t) ); }
+	void clearlinks(){ links.setsize(0); } //real clear ?
+	void clearlink(int i){ links.remove(i); }
+};
+extern int linkcopygrid;
+extern vector <linkinfo> linkcopys;
+// Library by Wrack, end
+
 extern bool editmode;
 
 extern bool packeditinfo(editinfo *e, int &inlen, uchar *&outbuf, int &outlen);
@@ -82,12 +117,20 @@ extern void mpeditface(int dir, int mode, selinfo &sel, bool local);
 extern void mpedittex(int tex, int allfaces, selinfo &sel, bool local);
 extern void mpeditmat(int matid, int filter, selinfo &sel, bool local);
 extern void mpflip(selinfo &sel, bool local);
-extern void mpcopy(editinfo *&e, selinfo &sel, bool local);
-extern void mppaste(editinfo *&e, selinfo &sel, bool local);
+extern void mpcopy(editinfo *&e, selinfo &sel, bool local, vector <linkinfo> &linkcopys, int &linkcopygrid); // Library by Wrack, added linkcopys, linkcopygrid
+extern void mppaste(editinfo *&e, selinfo &sel, bool local, vector <linkinfo> &linkcopys, int &linkcopygrid); // Library by Wrack, added linkcopys, linkcopygrid
 extern void mprotate(int cw, selinfo &sel, bool local);
 extern void mpreplacetex(int oldtex, int newtex, bool insel, selinfo &sel, bool local);
 extern void mpdelcube(selinfo &sel, bool local);
 extern void mpremip(bool local);
+
+// Library by Wrack 
+extern void itemlinkcopy(vector <linkinfo> &linkcopys, selinfo &sel, int &linkcopygrid);
+extern void itemlinkpaste(vector <linkinfo> &linkcopys, selinfo &sel, int &linkcopygrid);
+extern void itemlinkdelete(selinfo &sel);
+extern void itemlinkflip(selinfo &sel);
+extern void itemlinkrotate(int cw, selinfo &sel);
+//  Library by Wrack, end
 
 // command
 extern int variable(const char *name, int min, int cur, int max, int *storage, identfun fun, int flags);

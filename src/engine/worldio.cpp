@@ -158,7 +158,7 @@ bool loadents(const char *fname, vector<entity> &ents, uint *crc)
 }
 
 #ifndef STANDALONE
-string ogzname, bakname, cfgname, picname;
+string ogzname, bakname, cfgname, picname, libname; // Library by Wrack, added libname
 
 VARP(savebak, 0, 2, 2);
 
@@ -172,11 +172,13 @@ void setmapfilenames(const char *fname, const char *cname = 0)
     else formatstring(bakname)("packages/%s_%d.BAK", mapname, totalmillis);
     formatstring(cfgname)("packages/%s/%s.cfg", pakname, mcfgname);
     formatstring(picname)("packages/%s.jpg", mapname);
+	formatstring(libname)("packages/%s.lgz", mapname); // Library by Wrack
 
     path(ogzname);
     path(bakname);
     path(cfgname);
     path(picname);
+	path(libname); // Library by Wrack
 }
 
 void mapcfgname()
@@ -545,6 +547,8 @@ void loadvslots(stream *f, int numvslots)
     delete[] prev;
 }
 
+extern bool save_library(string &libname); // Library by Wrack
+
 bool save_world(const char *mname, bool nolms)
 {
     if(!*mname) mname = game::getclientmap();
@@ -561,6 +565,7 @@ bool save_world(const char *mname, bool nolms)
     }
 
     renderprogress(0, "saving map...");
+	save_library(libname); // Library by Wrack
 
     octaheader hdr;
     memcpy(hdr.magic, "OCTA", 4);
@@ -690,6 +695,8 @@ static void fixoversizedcubes(cube *c, int size)
     }
 }
 
+extern bool load_library(string &libname); // Library by Wrack
+
 bool load_world(const char *mname, const char *cname)        // still supports all map formats that have existed since the earliest cube betas!
 {
     int loadingstart = SDL_GetTicks();
@@ -752,6 +759,7 @@ bool load_world(const char *mname, const char *cname)        // still supports a
         else lilswap(&hdr.numvslots, 1);
     }
 
+	load_library(libname); // Library by Wrack
     renderprogress(0, "clearing world...");
 
     freeocta(worldroot);
