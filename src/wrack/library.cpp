@@ -48,14 +48,14 @@ void itemrotate(selinfo &itemsel,selinfo &trans,ivec &rot,bool back=false)
 	if(back)
 	{
 		if(rot.x!=0){ trans.orient = 0; mprotate(-1,trans,true); selrotate(itemsel,trans,1,0); }
-		if(rot.z!=0){ trans.orient = 4; mprotate(-1,trans,true); selrotate(itemsel,trans,1,2); }
 		if(rot.y!=0){ trans.orient = 2; mprotate(-1,trans,true); selrotate(itemsel,trans,1,1); }
+		if(rot.z!=0){ trans.orient = 4; mprotate(-1,trans,true); selrotate(itemsel,trans,1,2); }
 	}
 	else
 	{
+		if(rot.x!=0){ trans.orient = 0; mprotate(1,trans,true); selrotate(itemsel,trans,-1,0); }
 		if(rot.y!=0){ trans.orient = 2; mprotate(1,trans,true); selrotate(itemsel,trans,-1,1); }
 		if(rot.z!=0){ trans.orient = 4; mprotate(1,trans,true); selrotate(itemsel,trans,-1,2); }
-		if(rot.x!=0){ trans.orient = 0; mprotate(1,trans,true); selrotate(itemsel,trans,-1,0); }
 	}
 }
 
@@ -307,7 +307,7 @@ void renderlib()
 		loopitemilinks(i)
 		{
 			// debug output
-			/*
+			
 			ivec rot = ivec();
 			ivec flip = ivec();
 			decomptm(library[i].links[j].tm,rot,flip);
@@ -320,8 +320,8 @@ void renderlib()
 				rot[0],rot[1],rot[2],
 				(flip[0]==-1)?1:0,(flip[1]==-1)?1:0,(flip[2]==-1)?1:0
 			);
-			*/
-			defformatstring(linktitle)("%s:%i",ititle,j);
+			
+			//defformatstring(linktitle)("%s:%i",ititle,j);
 
 			itembox3d(library[i].links[j].sel, linktitle, 0, 255, 100);
 		}
