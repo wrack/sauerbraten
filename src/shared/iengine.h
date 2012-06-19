@@ -80,7 +80,7 @@ struct linkinfo
 	linkinfo(iteminfo *p, selinfo s, matrix3x3 t=matrix3x3(vec(1,0,0),vec(0,1,0),vec(0,0,1)))
 	{ 
 		parent = p; 
-		sel = s; 
+		sel = s; //deep copy
 		tm = t;
 	}
 };
@@ -91,8 +91,8 @@ struct iteminfo
 	vector<linkinfo> links;
 	char* name;
 	iteminfo(){ }
-	iteminfo(selinfo &s,const char *nam=""){ 
-		sel = s; trans = s; 
+	iteminfo(selinfo s,const char *nam=""){ 
+		sel = s; trans = s; //deep copy
 		int ms = max(s.s.x, max(s.s.y, s.s.z));
 		trans.s = ivec(ms,ms,ms);
 		name = newstring(nam);
@@ -130,6 +130,7 @@ extern void itemlinkpaste(vector <linkinfo> &linkcopys, selinfo &sel, int &linkc
 extern void itemlinkdelete(selinfo &sel);
 extern void itemlinkflip(selinfo &sel);
 extern void itemlinkrotate(int cw, selinfo &sel);
+extern void itemrotate(int cw, selinfo &sel);
 //  Library by Wrack, end
 
 // command

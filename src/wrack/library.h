@@ -13,6 +13,8 @@ extern bool isselinsel(selinfo &sel_in, selinfo &sel_wrap);
 #define loopitemilinks(i) loopvj(library[i].links)
 #define loopselitemlinks(sel) loopitemlinks() if(isselinsel(library[i].links[j].sel, sel))
 
+#define loopselitems(sel) looplibitems() if(isselinsel(library[i].sel, sel))
+
 #define looplibitemsrev()	loopvrev(library)
 #define loopitemlinksrev()	looplibitemsrev() loopvjrev(library[i].links)
 #define loopselitemlinksrev(sel) loopitemlinksrev() if(isselinsel(library[i].links[j].sel, sel))

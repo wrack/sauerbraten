@@ -47,15 +47,15 @@ void itemrotate(selinfo &itemsel,selinfo &trans,ivec &rot,bool back=false)
 {
 	if(back)
 	{
-		if(rot.x!=0){ trans.orient = 0; mprotate(-1,trans,true); selrotate(itemsel,trans,1,0); }
-		if(rot.y!=0){ trans.orient = 2; mprotate(-1,trans,true); selrotate(itemsel,trans,1,1); }
-		if(rot.z!=0){ trans.orient = 4; mprotate(-1,trans,true); selrotate(itemsel,trans,1,2); }
+		if(rot.x!=0){ trans.orient = 0; mprotate(-1,trans,true); selrotate(itemsel,trans,-1,0); }
+		if(rot.z!=0){ trans.orient = 4; mprotate(-1,trans,true); selrotate(itemsel,trans,-1,2); }
+		if(rot.y!=0){ trans.orient = 2; mprotate(-1,trans,true); selrotate(itemsel,trans,-1,1); }
 	}
 	else
 	{
-		if(rot.x!=0){ trans.orient = 0; mprotate(1,trans,true); selrotate(itemsel,trans,-1,0); }
-		if(rot.y!=0){ trans.orient = 2; mprotate(1,trans,true); selrotate(itemsel,trans,-1,1); }
-		if(rot.z!=0){ trans.orient = 4; mprotate(1,trans,true); selrotate(itemsel,trans,-1,2); }
+		if(rot.y!=0){ trans.orient = 2; mprotate(1,trans,true); selrotate(itemsel,trans,1,1); }
+		if(rot.z!=0){ trans.orient = 4; mprotate(1,trans,true); selrotate(itemsel,trans,1,2); }
+		if(rot.x!=0){ trans.orient = 0; mprotate(1,trans,true); selrotate(itemsel,trans,1,0); }
 	}
 }
 
@@ -85,27 +85,28 @@ void itemcopy(int *i)
 void itemcopy(int *i,matrix3x3 &tm)
 {
 	// transform init
-	selinfo curr_sel = library[*i].sel;
+	//selinfo curr_sel = library[*i].sel;
 	ivec rot = ivec();
 	ivec flip = ivec();
 	decomptm(tm,rot,flip);
 	
 	//transform
-	itemflip(curr_sel,flip);
-	itemrotate(curr_sel,library[*i].trans,rot);
-	
+	itemflip(library[*i].sel,flip);
+	itemrotate(library[*i].sel,library[*i].trans,rot);
+
 	//copy
-	itemcopy(curr_sel);
+	itemcopy(library[*i].sel);
 	
 	//transform back
-	itemrotate(curr_sel,library[*i].trans,rot,true);
-	itemflip(curr_sel,flip);
+	itemrotate(library[*i].sel,library[*i].trans,rot,true);
+	itemflip(library[*i].sel,flip);
 }
 
 void itempaste(int *i,int *j)
 {
 	mppaste(localedit,library[*i].links[*j].sel,true,linkcopys,linkcopygrid);
 }
+
 
 //--- apply lib
 
@@ -307,7 +308,7 @@ void renderlib()
 		loopitemilinks(i)
 		{
 			// debug output
-			
+			/*
 			ivec rot = ivec();
 			ivec flip = ivec();
 			decomptm(library[i].links[j].tm,rot,flip);
@@ -320,8 +321,8 @@ void renderlib()
 				rot[0],rot[1],rot[2],
 				(flip[0]==-1)?1:0,(flip[1]==-1)?1:0,(flip[2]==-1)?1:0
 			);
-			
-			//defformatstring(linktitle)("%s:%i",ititle,j);
+			*/
+			defformatstring(linktitle)("%s:%i",ititle,j);
 
 			itembox3d(library[i].links[j].sel, linktitle, 0, 255, 100);
 		}
@@ -358,7 +359,9 @@ bool save_library(string &libname){
 	f->putchar('\n');
 	looplibitems(){
 		save_sel(f,library[i].sel);
-		conoutf("put %i",f->putline(library[i].name));
+		//conoutf("put %i",f->putline(library[i].name));
+		conoutf("%s",library[i].name);
+		f->putline(library[i].name);
 		f->putlil<int>(library[i].links.length());
 		f->putchar('\n');
 		loopitemilinks(i){
@@ -406,7 +409,7 @@ bool load_library(string &libname){
 		char buf[512];
 		f->getline(buf,sizeof(buf));
 		int blen = strlen(buf);
-		if(!(blen > 0 && buf[blen-1] == '\n')) newstring(buf);
+		if(blen > 0 && buf[blen-1] == '\n'){ buf[blen-1]=0; library[i].name = newstring(buf); }
 
 		int llen = f->getlil<int>();
 		f->getchar();
