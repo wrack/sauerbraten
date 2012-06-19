@@ -3,7 +3,7 @@
 <head>
 	<meta charset='utf-8'>
 	<meta http-equiv="X-UA-Compatible" content="IE=9" />
-	<title>Suaerbraten Logic Simulation Mod</title>
+	<title>Wracks Suaerbraten</title>
 	<link rel="stylesheet" type="text/css" href="css/screen.css">
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
 	<script src="js/main.js"></script>
@@ -15,8 +15,11 @@
 	<div class="main corner-round">
 		<div class="main-inner">
 			<div class="header corner-round bg-gradient">
-				<img src="img/logo.png" />
-				<h1>Sauerbraten Logic Simulator</h1>
+				<img src="img/logo_all.png" />
+				<div class="center">
+					<a href="index.html"><h1>Wracks Sauerbraten</h1></a>
+					<div class="menu"><a href="logic-simulator.html">Logic Simulator</a> | <a href="library.html">Library</a> | <a href="marchingcubes.html">Marching Cubes</a></div>
+				</div>
 				<a class="github-link corner-round" href="http://github.com/wrack/sauerbraten" title="visit on GitHub" target="_blank">GitHub</a>
 				<div class="clear"></div>
 			</div>
@@ -25,67 +28,35 @@
 				<div class="slide-show">
 					<div class="slide-show-btn-left" id="slider-left-btn"><span>&#60;</span></div>
 					<div class="slide-container">
-						<div class="slider" id="slider">
+						<div class="slider" id="slider" style="width:2400px;">
 							<div class="slider-container">
-								<object style="height:450px; width:800px"><param name="movie" value="http://www.youtube.com/v/4WvqZhx7sHg?version=3"><param name="allowFullScreen" value="true"><param name="allowScriptAccess" value="always"><embed src="http://www.youtube.com/v/4WvqZhx7sHg?version=3" type="application/x-shockwave-flash" allowfullscreen="true" allowScriptAccess="always" width="800" height="450"></object>
+								<a href="logic-simulator.html" title="Logic Simulator">
+									<img src="img/screen_intro.png" /><div class="img-overlay opac"> </div><div class="img-overlay"><span class="overlay-head">Logic Simulator</span><p>Build and simulate logic circuits in Sauerbraten edit mode.</p></div>
+								</a>
 							</div>
-							<div class="slider-container">
-								<object style="height:450px; width:800px"><param name="movie" value="http://www.youtube.com/v/U0Ic3UCihxk?version=3"><param name="allowFullScreen" value="true"><param name="allowScriptAccess" value="always"><embed src="http://www.youtube.com/v/U0Ic3UCihxk?version=3" type="application/x-shockwave-flash" allowfullscreen="true" allowScriptAccess="always" width="800" height="450"></object>
+							<div class="slider-container" title="Library">
+								<a href="library.html">
+									<img src="img/screen_library_intro.png" /><div class="img-overlay opac"> </div><div class="img-overlay"><span class="overlay-head">Library</span><p>Use a object library on your map and apply chnages quickly.</p></div>
+								</a>
 							</div>
-							<div class="slider-container">
-								<object style="height:450px; width:800px"><param name="movie" value="http://www.youtube.com/v/n-8eAWn647Y?version=3"><param name="allowFullScreen" value="true"><param name="allowScriptAccess" value="always"><embed src="http://www.youtube.com/v/n-8eAWn647Y?version=3" type="application/x-shockwave-flash" allowfullscreen="true" allowScriptAccess="always" width="800" height="450"></object>
-							</div>
-							<div class="slider-container">
-								<img src="img/screen_intro.png" />
-							</div>
-							<div class="slider-container">
-								<img src="img/screen_7seg_front.png" />
-							</div>
-							<div class="slider-container">
-								<img src="img/screen_7seg.png" />
-							</div>
-							<div class="slider-container">
-								<img src="img/screen_alu.png" />
-							</div>
-							<div class="slider-container">
-								<img src="img/screen_numbers.png" />
+							<div class="slider-container" title="Marching Cubes">
+								<a href="marchingcubes.html">
+									<img src="img/screen_mcubes_intro.png" /><div class="img-overlay opac"> </div><div class="img-overlay"><span class="overlay-head">Marching Cubes - Coming Soon</span><p>An experimental Sauerbraten Marching Cubes algorithm with Blender exporter.</p></div>
+								</a>
 							</div>
 						</div>
 					</div>
 					<div class="slide-show-btn-right" id="slider-right-btn"><span>&#62;</span></div>
 					<div class="clear"></div>
 				</div>
-				<div class="clear"></div>
-				<div class="text-cont">
-					<h2>Would you like to build logic circuits in Sauerbraten?</h2>
-					<p>
-						Download the real-time Sauerbraten Logic Simulator.</br>
-						Build all kinds of logic gates like AND, OR, XOR ...</br>
-						Use components like led, rectangle signal generator, switch and button.</br>
-						Toggle switches or buttons with a shot.</br>
-						Enjoy fast rendering and simulation in real-time.</br>
-						For more information see the <a href="https://github.com/wrack/sauerbraten/wiki" target="_blank">Wiki</a></br>
-						</br>
-						<span class="bold">You will love it.</span>
-						
-					</p>
-				</div>
-				<div class="dwnl">
-					<h2>Get it now</h2>
-					<a class="dwnl-link dwnl-bg corner-round" href="http://github.com/wrack/sauerbraten/zipball/master"><img border="0" width="90" src="http://github.com/images/modules/download/zip.png" title="download"></a>
-					<a class="dwnl-link dwnl-bg corner-round" href="http://github.com/wrack/sauerbraten/tarball/master"><img border="0" width="90" src="http://github.com/images/modules/download/tar.png" title="download"></a>
-					<div class="clear"></div>
-					<div class="gitclone dwnl-bg corner-round">
-					<span class="bold">Or git clone it</span><br/><br/>
-					<div class="code">$ git clone git://github.com/wrack/sauerbraten<br/>$ cd sauerbraten/<br/>$ git checkout logic-simulator</div>
-					</div>
-				</div>
+				<script type="text/javascript">$(document).ready(function(){max_img=2});</script>
+				
 				<div class="clear"></div>
 			</div>
 			<div class="footer bg-gradient corner-round">
 				<div class="left">
-					<a href="http://cubicmatter.net">Cubic Matter</a><span> | </span>
-					<a href="http://http://sauerbraten.org">Sauerbraten</a>
+					<a href="http://cubicmatter.net" target="_blanc">Cubic Matter</a><span> | </span>
+					<a href="http://sauerbraten.org" target="_blanc">Sauerbraten</a>
 				</div>
 				<span>by Eric Depta</span>
 			</div>

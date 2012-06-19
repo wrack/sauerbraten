@@ -23,7 +23,12 @@ a:hover { color:#0084f3; }
 	padding:1em;
 }
 .header img { float:left; border:2px solid #ffffff; }
-.header h1 { float:left; margin:10px 10px 0 20px; font-size:30px; text-shadow: #ffffff 1px 1px 0px; color:#2f6da2; text-transform:uppercase; letter-spacing:0.03em;  }
+.header .center { float:left; margin:0 10px 0 20px; }
+.header .center h1 { margin:0; font-size:30px; text-shadow: #ffffff 1px 1px 0px; color:#2f6da2; text-transform:uppercase; letter-spacing:0.03em;  }
+.header .center .menu { font-weight:bold; margin:0; font-size:15px; text-shadow: #ffffff 1px 1px 0px; color:#666666; text-transform:uppercase; letter-spacing:0.03em; }
+.header .center .menu a { color:#666666; }
+.header .center .menu a:hover,
+.header .center .menu a.active { color:#0084f3; }
 
 .content { min-height:400px; }
 
@@ -90,9 +95,14 @@ a:hover { color:#0084f3; }
 }
 
 .slide-container { width:800px; overflow:hidden; }
-.slider{ width:6400px; }
+.slider{  }
 
 .slider-container { float:left; }
+
+.img-overlay { width:770px; height:35px; margin-top:-55px; padding:10px 15px 10px 15px; position:relative; z-index:20; }
+.opac { background-color:#1264A8; opacity:.6; position:relative; z-index:10; }
+.img-overlay p { margin:0; font-size:12px; color:#ffffff; }
+.overlay-head { margin:0; font-weight:bold; font-size:15px; color:#ffffff; text-transform:uppercase; letter-spacing:0.03em;  }
 
 .github-link { 
 	height:36px;
