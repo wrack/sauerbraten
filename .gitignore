@@ -1,0 +1,14 @@
+sauerbraten.pdb
+bin
+!bin/lsim_sauerbraten.exe
+packages/*
+!packages/base/
+packages/base/*
+!packages/base/logicsim.ogz
+src/vcpp
+!src/vcpp/sauerbraten.sln
+!src/vcpp/sauerbraten.suo
+config.cfg
+init.cfg
+restore.cfg
+servers.cfg
