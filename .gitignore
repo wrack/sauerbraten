@@ -1,5 +1,6 @@
 sauerbraten.pdb
-bin
+bin/*
+!bin/library_sauerbraten.exe
 packages/*
 !packages/icons/
 packages/icons/*
@@ -7,3 +8,7 @@ packages/icons/*
 src/vcpp
 !src/vcpp/sauerbraten.sln
 !src/vcpp/sauerbraten.suo
+config.cfg
+init.cfg
+restore.cfg
+servers.cfg
