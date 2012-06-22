@@ -1,0 +1,11 @@
+sauerbraten.pdb
+bin/*
+!bin/mcubes_sauerbraten.exe
+packages
+src/vcpp
+!src/vcpp/sauerbraten.sln
+!src/vcpp/sauerbraten.suo
+config.cfg
+init.cfg
+restore.cfg
+servers.cfg
