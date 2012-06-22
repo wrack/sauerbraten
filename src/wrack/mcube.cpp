@@ -50,24 +50,6 @@ void buildoctahedron(float *r,int *d,float *ox,float *oy,float *oz)
 }
 COMMAND(buildoctahedron, "fifff");
 
-void buildci(unsigned int *ci)
-{
-	sel.orient = 4; //select bottom face for loopxyz, so that x y z is correct x y z [cube] in block3
-	loopxyz(sel, sel.grid, march_cube(c,*ci) );	
-	changed(sel);
-}
-COMMAND(buildci, "i");
-
-void buildallci()
-{
-	sel.s = ivec(51,5,1);
-	sel.orient = 4; //select bottom face for loopxyz, so that x y z is correct x y z [cube] in block3
-	unsigned int ci = 0;
-	loopxyz(sel, sel.grid, march_cube(c,ci); ci++; );
-	changed(sel);
-}
-COMMAND(buildallci, "");
-
 // IMPORT *.smc (Sauerbraten Marching Cubes)
 
 void importsmc(char *name,bool *voxel)
@@ -115,6 +97,24 @@ COMMAND(importsmc,"si");
 
 
 //-- FOR DEBUG
+void buildci(unsigned int *ci)
+{
+	sel.orient = 4; //select bottom face for loopxyz, so that x y z is correct x y z [cube] in block3
+	loopxyz(sel, sel.grid, march_cube(c,*ci) );	
+	changed(sel);
+}
+COMMAND(buildci, "i");
+
+void buildallci()
+{
+	sel.s = ivec(51,5,1);
+	sel.orient = 4; //select bottom face for loopxyz, so that x y z is correct x y z [cube] in block3
+	unsigned int ci = 0;
+	loopxyz(sel, sel.grid, march_cube(c,ci); ci++; );
+	changed(sel);
+}
+COMMAND(buildallci, "");
+
 void buildallcisorted()
 {
 	int sy=sel.o.y;
